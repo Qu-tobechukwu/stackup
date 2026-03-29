@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackUp — Build with AI. Ship Real Things.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060810;
+      --bg2: #0c0f1a;
+      --surface: #0f1220;
+      --surface2: #151929;
+      --border: #1a2035;
+      --border2: #222840;
+      --lime: #c6f135;
+      --lime-dim: rgba(198,241,53,0.12);
+      --lime-border: rgba(198,241,53,0.25);
+      --blue: #4d7cfe;
+      --blue-dim: rgba(77,124,254,0.1);
+      --pink: #ff4ecd;
+      --text: #e2e8f8;
+      --muted: #5a6585;
+      --muted2: #8895b3;
+      --mono: 'Fira Code', monospace;
+      --sans: 'Space Grotesk', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    #cur { position: fixed; width: 8px; height: 8px; background: var(--lime); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: transform .15s; }
+    #cur-r { position: fixed; width: 32px; height: 32px; border: 1px solid var(--lime-border); border-radius: 50%; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: width .2s, height .2s; }
+    body.hovering #cur { transform: translate(-50%,-50%) scale(2.5); }
+    body.hovering #cur-r { width: 52px; height: 52px; }
+
+    .bg-layer {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 20%, rgba(198,241,53,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 70%, rgba(77,124,254,0.05) 0%, transparent 60%),
+        linear-gradient(rgba(198,241,53,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(198,241,53,0.025) 1px, transparent 1px);
+      background-size: auto, auto, 56px 56px, 56px 56px;
+    }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 3.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(6,8,16,0.8);
+      backdrop-filter: blur(16px);
+    }
+    .logo { font-family: var(--mono); font-size: 1rem; font-weight: 600; color: var(--lime); letter-spacing: -0.5px; text-decoration: none; }
+    .logo em { color: var(--muted); font-style: normal; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { font-size: .82rem; color: var(--muted2); text-decoration: none; transition: color .2s; }
+    .nav-links a:hover { color: var(--lime); }
+    .nav-btn { font-family: var(--mono); font-size: .78rem; font-weight: 600; color: var(--bg); background: var(--lime); border: none; padding: .55rem 1.4rem; cursor: none; text-decoration: none; clip-path: polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px)); transition: opacity .2s; }
+    .nav-btn:hover { opacity: .85; }
+
+    .hero {
+      min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center;
+      padding: 8rem 3.5rem 4rem;
+      position: relative; z-index: 1;
+      gap: 4rem;
+    }
+
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: .6rem; font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; color: var(--lime); border: 1px solid var(--lime-border); padding: .3rem .85rem; margin-bottom: 1.8rem; animation: up .5s ease both; }
+    .hero-eyebrow .dot { width: 6px; height: 6px; background: var(--lime); border-radius: 50%; animation: blink 1.4s infinite; }
+
+    .hero h1 { font-size: clamp(2.8rem, 5.5vw, 4.8rem); font-weight: 700; line-height: 1.02; letter-spacing: -2.5px; margin-bottom: 1.5rem; animation: up .5s .08s ease both; }
+    .hero h1 .hi { color: var(--lime); }
+    .hero h1 .ho { color: var(--muted); }
+
+    .hero-desc { font-size: 1.05rem; color: var(--muted2); line-height: 1.75; max-width: 480px; margin-bottom: 2.25rem; animation: up .5s .16s ease both; }
+
+    .hero-pills { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2.5rem; animation: up .5s .24s ease both; }
+    .pill { font-family: var(--mono); font-size: .68rem; letter-spacing: .06em; color: var(--lime); border: 1px solid var(--lime-border); padding: .28rem .75rem; background: var(--lime-dim); }
+
+    .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; animation: up .5s .32s ease both; }
+    .btn-main { font-family: var(--mono); font-size: .82rem; font-weight: 600; color: var(--bg); background: var(--lime); border: none; padding: .9rem 2rem; cursor: none; text-decoration: none; display: inline-block; clip-path: polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px)); transition: opacity .2s; }
+    .btn-main:hover { opacity: .85; }
+    .btn-ghost { font-family: var(--mono); font-size: .82rem; font-weight: 500; color: var(--text); background: transparent; border: 1px solid var(--border2); padding: .9rem 2rem; cursor: none; text-decoration: none; display: inline-block; transition: border-color .2s, color .2s; }
+    .btn-ghost:hover { border-color: var(--lime); color: var(--lime); }
+
+    .hero-right { position: relative; animation: up .5s .4s ease both; }
+    .build-board { background: var(--surface); border: 1px solid var(--border2); padding: 1.5rem; position: relative; }
+    .build-board::before { content: '// what you will ship'; font-family: var(--mono); font-size: .68rem; color: var(--muted); display: block; margin-bottom: 1.25rem; letter-spacing: .06em; }
+    .project-row { display: flex; align-items: center; gap: 1rem; padding: .8rem 1rem; margin-bottom: .5rem; border: 1px solid var(--border); transition: border-color .25s, background .25s; cursor: none; }
+    .project-row:hover { border-color: var(--lime-border); background: var(--lime-dim); }
+    .project-row:last-child { margin-bottom: 0; }
+    .proj-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .proj-info { flex: 1; }
+    .proj-name { font-size: .88rem; font-weight: 600; margin-bottom: .15rem; }
+    .proj-tag { font-family: var(--mono); font-size: .65rem; color: var(--muted); }
+    .proj-status { font-family: var(--mono); font-size: .65rem; letter-spacing: .06em; padding: .2rem .55rem; }
+    .proj-status.live { color: var(--lime); background: var(--lime-dim); border: 1px solid var(--lime-border); }
+    .proj-status.build { color: var(--blue); background: var(--blue-dim); border: 1px solid rgba(77,124,254,.25); }
+    .floating-badge { position: absolute; top: -1rem; right: -1rem; background: var(--lime); color: var(--bg); font-family: var(--mono); font-size: .68rem; font-weight: 600; padding: .4rem .9rem; letter-spacing: .06em; clip-path: polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px)); }
+
+    .marquee-wrap { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); overflow: hidden; white-space: nowrap; padding: .9rem 0; position: relative; z-index: 1; background: var(--bg2); }
+    .marquee-track { display: inline-flex; gap: 2.5rem; animation: marquee 28s linear infinite; }
+    .marquee-track span { font-family: var(--mono); font-size: .75rem; color: var(--muted); letter-spacing: .08em; }
+    .marquee-track span em { color: var(--lime); font-style: normal; }
+    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    section { position: relative; z-index: 1; padding: 6rem 3.5rem; }
+    .label { font-family: var(--mono); font-size: .7rem; letter-spacing: .15em; color: var(--lime); margin-bottom: .75rem; display: block; }
+    .label::before { content: '// '; color: var(--muted); }
+    h2 { font-size: clamp(2rem, 3.5vw, 2.9rem); font-weight: 700; letter-spacing: -1.5px; margin-bottom: .75rem; line-height: 1.1; }
+    .sub { color: var(--muted2); line-height: 1.75; max-width: 520px; margin-bottom: 3.5rem; font-size: .98rem; }
+
+    .promise-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
+    .promise-card { background: var(--surface); padding: 2.5rem; position: relative; overflow: hidden; transition: background .2s; }
+    .promise-card:hover { background: var(--surface2); }
+    .promise-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--lime); opacity: 0; transition: opacity .2s; }
+    .promise-card:hover::after { opacity: 1; }
+    .promise-num { font-family: var(--mono); font-size: .68rem; color: var(--muted); margin-bottom: 1.25rem; letter-spacing: .1em; }
+    .promise-icon { font-size: 1.75rem; margin-bottom: 1rem; display: block; }
+    .promise-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .6rem; }
+    .promise-card p { color: var(--muted2); font-size: .86rem; line-height: 1.75; }
+    .promise-tools { margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+    .tool-tag { font-family: var(--mono); font-size: .62rem; color: var(--lime); border: 1px solid var(--lime-border); padding: .18rem .5rem; background: var(--lime-dim); }
+
+    .curriculum { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .phase-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); }
+    .phase-card { background: var(--surface); padding: 2rem; border-top: 3px solid transparent; transition: background .2s; }
+    .phase-card:hover { background: var(--surface2); }
+    .phase-card.p1 { border-top-color: var(--lime); }
+    .phase-card.p2 { border-top-color: var(--blue); }
+    .phase-card.p3 { border-top-color: var(--pink); }
+    .phase-card.p4 { border-top-color: #fbbf24; }
+    .phase-label { font-family: var(--mono); font-size: .65rem; color: var(--muted); letter-spacing: .1em; margin-bottom: .85rem; }
+    .phase-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+    .phase-who { font-size: .78rem; color: var(--muted); margin-bottom: 1.25rem; }
+    .phase-items { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .phase-items li { font-size: .8rem; color: var(--muted2); display: flex; gap: .5rem; align-items: flex-start; }
+    .phase-items li::before { content: '→'; color: var(--lime); flex-shrink: 0; font-family: var(--mono); }
+    .phase-project { margin-top: 1.5rem; padding: .85rem; background: var(--bg); border: 1px solid var(--border2); font-family: var(--mono); font-size: .72rem; }
+    .phase-project span { color: var(--muted); display: block; margin-bottom: .3rem; }
+    .phase-project strong { color: var(--lime); }
+
+    .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .tool-card { border: 1px solid var(--border); padding: 1.75rem; background: var(--surface); transition: border-color .2s, background .2s; position: relative; }
+    .tool-card:hover { border-color: var(--lime-border); background: var(--surface2); }
+    .tool-card-icon { font-size: 1.4rem; margin-bottom: 1rem; }
+    .tool-card h4 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+    .tool-card p { color: var(--muted2); font-size: .82rem; line-height: 1.7; }
+    .tool-card-badge { position: absolute; top: 1rem; right: 1rem; font-family: var(--mono); font-size: .6rem; color: var(--muted); border: 1px solid var(--border); padding: .15rem .4rem; }
+
+    .outcomes-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); }
+    .outcome-card { background: var(--surface); padding: 2.75rem 2.25rem; display: flex; flex-direction: column; gap: 1rem; transition: background .2s; }
+    .outcome-card:hover { background: var(--surface2); }
+    .outcome-num { font-family: var(--mono); font-size: 3rem; font-weight: 700; color: var(--lime); line-height: 1; letter-spacing: -2px; }
+    .outcome-card h3 { font-size: 1.1rem; font-weight: 700; }
+    .outcome-card p { color: var(--muted2); font-size: .86rem; line-height: 1.75; }
+
+    .maths-strip { background: var(--lime); padding: 3rem 3.5rem; display: flex; align-items: center; justify-content: space-between; gap: 2rem; position: relative; z-index: 1; }
+    .maths-strip h3 { font-size: 1.5rem; font-weight: 700; color: var(--bg); letter-spacing: -.5px; }
+    .maths-strip p { color: rgba(6,8,16,.65); max-width: 420px; font-size: .9rem; line-height: 1.7; margin-top: .4rem; }
+    .btn-dark { font-family: var(--mono); font-size: .78rem; font-weight: 700; color: var(--lime); background: var(--bg); border: none; padding: .85rem 1.75rem; cursor: none; text-decoration: none; white-space: nowrap; display: inline-block; flex-shrink: 0; clip-path: polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px)); transition: opacity .2s; }
+    .btn-dark:hover { opacity: .85; }
+
+    .formats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); }
+    .format-card { background: var(--surface); padding: 2.25rem; transition: background .2s; }
+    .format-card:hover { background: var(--surface2); }
+    .format-id { font-family: var(--mono); font-size: .68rem; color: var(--muted); letter-spacing: .1em; margin-bottom: 1rem; }
+    .format-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: .5rem; }
+    .format-card p { color: var(--muted2); font-size: .84rem; line-height: 1.75; }
+    .format-price { font-family: var(--mono); font-size: .78rem; color: var(--lime); margin-top: 1.25rem; display: block; }
+
+    .steps-row { display: grid; grid-template-columns: repeat(5, 1fr); position: relative; }
+    .steps-row::after { content: ''; position: absolute; top: 20px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, var(--lime), var(--blue), var(--pink), #fbbf24); opacity: .2; }
+    .step { padding: 1.5rem 1.25rem; }
+    .step-n { font-family: var(--mono); font-size: .7rem; color: var(--lime); background: var(--bg); border: 1px solid var(--lime-border); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; position: relative; z-index: 1; }
+    .step h4 { font-size: .9rem; font-weight: 700; margin-bottom: .4rem; }
+    .step p { color: var(--muted2); font-size: .8rem; line-height: 1.7; }
+
+    .network-box { background: var(--surface); border: 1px solid var(--border2); padding: 2.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+    .network-box h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: .6rem; }
+    .network-box p { color: var(--muted2); font-size: .88rem; line-height: 1.75; }
+    .network-items { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.5rem; }
+    .network-item { display: flex; align-items: center; gap: .85rem; padding: .85rem 1rem; border: 1px solid var(--border); background: var(--bg); transition: border-color .2s; }
+    .network-item:hover { border-color: var(--lime-border); }
+    .network-item-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .ni-text h5 { font-size: .85rem; font-weight: 600; }
+    .ni-text p { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+
+    .faq-col { max-width: 680px; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 1.4rem 0; }
+    .faq-q { font-size: .95rem; font-weight: 600; cursor: none; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .faq-q::after { content: '+'; font-family: var(--mono); color: var(--lime); font-size: 1.1rem; flex-shrink: 0; transition: transform .2s; }
+    .faq-item.open .faq-q::after { transform: rotate(45deg); }
+    .faq-a { color: var(--muted2); font-size: .88rem; line-height: 1.8; max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .3s; }
+    .faq-item.open .faq-a { max-height: 200px; padding-top: .9rem; }
+
+    .cta-section { background: var(--bg2); border-top: 1px solid var(--border); text-align: center; position: relative; overflow: hidden; }
+    .cta-section::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 60% at 50% 0%, rgba(198,241,53,0.06), transparent 70%); }
+    .cta-code { font-family: var(--mono); font-size: .78rem; color: var(--muted); margin-bottom: 2rem; display: block; }
+    .cta-code em { color: var(--lime); font-style: normal; }
+    .cta-section h2 { font-size: clamp(2rem, 4vw, 3.25rem); margin-bottom: .9rem; }
+    .cta-section p { color: var(--muted2); margin-bottom: 2.5rem; max-width: 440px; margin-left: auto; margin-right: auto; }
+
+    .contact-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
+    .contact-form { display: flex; flex-direction: column; gap: 1rem; }
+    .fg { display: flex; flex-direction: column; gap: .35rem; }
+    .fg label { font-family: var(--mono); font-size: .68rem; color: var(--muted); letter-spacing: .08em; }
+    .fg input, .fg select, .fg textarea { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: .75rem 1rem; font-family: var(--sans); font-size: .85rem; outline: none; transition: border-color .2s; resize: vertical; }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--lime); }
+    .fg select option { background: var(--surface); }
+    .submit-btn { font-family: var(--mono); font-size: .82rem; font-weight: 700; color: var(--bg); background: var(--lime); border: none; padding: 1rem; cursor: none; width: 100%; letter-spacing: .04em; clip-path: polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px)); transition: opacity .2s; }
+    .submit-btn:hover { opacity: .85; }
+    .contact-sidebar { display: flex; flex-direction: column; gap: 1.25rem; }
+    .contact-fact { display: flex; gap: 1rem; padding: 1.25rem; border: 1px solid var(--border); background: var(--surface); transition: border-color .2s; }
+    .contact-fact:hover { border-color: var(--lime-border); }
+    .fact-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: .1rem; }
+    .fact-text h5 { font-size: .88rem; font-weight: 600; margin-bottom: .25rem; }
+    .fact-text p { font-size: .82rem; color: var(--muted2); line-height: 1.65; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem 3.5rem; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 1; }
+    .footer-logo { font-family: var(--mono); font-size: .9rem; color: var(--lime); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-family: var(--mono); font-size: .7rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--lime); }
+    .footer-copy { font-family: var(--mono); font-size: .7rem; color: var(--muted); }
+
+    @keyframes up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media(max-width:960px){
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hero { grid-template-columns: 1fr; padding: 7rem 1.5rem 3rem; gap: 2.5rem; }
+      section { padding: 4rem 1.5rem; }
+      .promise-grid, .phase-grid, .tools-grid, .outcomes-row, .formats-grid, .steps-row, .contact-wrap { grid-template-columns: 1fr; }
+      .network-box { grid-template-columns: 1fr; gap: 1.5rem; }
+      .maths-strip { flex-direction: column; align-items: flex-start; padding: 2rem 1.5rem; }
+      footer { flex-direction: column; gap: 1rem; padding: 1.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div id="cur"></div>
+  <div id="cur-r"></div>
+  <div class="bg-layer"></div>
+
+  <nav>
+    <a href="#" class="logo">stack<em>_</em>up<em>();</em></a>
+    <ul class="nav-links">
+      <li><a href="#curriculum">curriculum</a></li>
+      <li><a href="#tools">tools</a></li>
+      <li><a href="#outcomes">outcomes</a></li>
+      <li><a href="#faq">faq</a></li>
+    </ul>
+    <a href="#contact" class="nav-btn">GET STARTED →</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow"><span class="dot"></span> NOW ENROLLING — HIGH SCHOOL &amp; UNI YEAR 1</div>
+      <h1>Learn to build<br>with <span class="hi">AI</span> at your<br><span class="ho">fingertips.</span></h1>
+      <p class="hero-desc">Most coding courses teach you how things worked five years ago. StackUp teaches you how to build in the AI era — with real tools, real projects, and the principles to stay ahead of the curve.</p>
+      <div class="hero-pills">
+        <span class="pill">AI-powered building</span>
+        <span class="pill">CS fundamentals</span>
+        <span class="pill">Ship real products</span>
+        <span class="pill">DevOps & cloud</span>
+        <span class="pill">Job shadowing</span>
+        <span class="pill">100% online</span>
+      </div>
+      <div class="hero-ctas">
+        <a href="#contact" class="btn-main">BOOK FREE TRIAL →</a>
+        <a href="#curriculum" class="btn-ghost">SEE CURRICULUM</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="floating-badge">STUDENTS SHIPPING LIVE</div>
+      <div class="build-board">
+        <div class="project-row">
+          <div class="proj-icon">🛒</div>
+          <div class="proj-info">
+            <div class="proj-name">AI-powered e-commerce app</div>
+            <div class="proj-tag">v0 + Next.js + Vercel · built in 3 weeks</div>
+          </div>
+          <div class="proj-status live">LIVE</div>
+        </div>
+        <div class="project-row">
+          <div class="proj-icon">🤖</div>
+          <div class="proj-info">
+            <div class="proj-name">Personal AI study assistant</div>
+            <div class="proj-tag">Claude API + Python + Railway</div>
+          </div>
+          <div class="proj-status live">LIVE</div>
+        </div>
+        <div class="project-row">
+          <div class="proj-icon">📊</div>
+          <div class="proj-info">
+            <div class="proj-name">Real-time data dashboard</div>
+            <div class="proj-tag">Cursor + React + Supabase</div>
+          </div>
+          <div class="proj-status live">LIVE</div>
+        </div>
+        <div class="project-row">
+          <div class="proj-icon">🎮</div>
+          <div class="proj-info">
+            <div class="proj-name">Browser game with leaderboard</div>
+            <div class="proj-tag">AI-generated logic + GitHub Actions CI/CD</div>
+          </div>
+          <div class="proj-status build">IN BUILD</div>
+        </div>
+        <div class="project-row">
+          <div class="proj-icon">🔐</div>
+          <div class="proj-info">
+            <div class="proj-name">Security audit tool</div>
+            <div class="proj-tag">Cybersec track · Linux + Python</div>
+          </div>
+          <div class="proj-status build">IN BUILD</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <span><em>cursor</em> · ai code editor</span><span>·</span>
+      <span><em>claude</em> · build with ai</span><span>·</span>
+      <span><em>v0</em> · ai ui generation</span><span>·</span>
+      <span><em>vercel</em> · deploy in seconds</span><span>·</span>
+      <span><em>github</em> · version control</span><span>·</span>
+      <span><em>supabase</em> · instant backend</span><span>·</span>
+      <span><em>railway</em> · cloud hosting</span><span>·</span>
+      <span><em>python</em> · the builder's language</span><span>·</span>
+      <span><em>linux</em> · know your machine</span><span>·</span>
+      <span><em>cursor</em> · ai code editor</span><span>·</span>
+      <span><em>claude</em> · build with ai</span><span>·</span>
+      <span><em>v0</em> · ai ui generation</span><span>·</span>
+      <span><em>vercel</em> · deploy in seconds</span><span>·</span>
+      <span><em>github</em> · version control</span><span>·</span>
+      <span><em>supabase</em> · instant backend</span><span>·</span>
+      <span><em>railway</em> · cloud hosting</span><span>·</span>
+      <span><em>python</em> · the builder's language</span><span>·</span>
+      <span><em>linux</em> · know your machine</span><span>·</span>
+    </div>
+  </div>
+
+  <section id="promise">
+    <span class="label reveal">what makes stackup different</span>
+    <h2 class="reveal">Not a coding course.<br>A builder's launchpad.</h2>
+    <p class="sub reveal">We don't just teach syntax. We teach you how to think, prompt, build, ship, and network your way into the industry — before you even finish school.</p>
+    <div class="promise-grid">
+      <div class="promise-card reveal">
+        <div class="promise-num">01</div>
+        <span class="promise-icon">🧠</span>
+        <h3>AI-powered building</h3>
+        <p>Learn to use AI tools as your co-pilot — not a cheat code, but a superpower. You'll understand what's happening under the hood while building 10x faster.</p>
+        <div class="promise-tools"><span class="tool-tag">Cursor</span><span class="tool-tag">Claude API</span><span class="tool-tag">v0</span><span class="tool-tag">ChatGPT</span></div>
+      </div>
+      <div class="promise-card reveal">
+        <div class="promise-num">02</div>
+        <span class="promise-icon">⚡</span>
+        <h3>Prompting as a skill</h3>
+        <p>Write prompts that actually work. Learn project scaffolding, context-setting, and how to turn a vague idea into a working product using AI — step by step.</p>
+        <div class="promise-tools"><span class="tool-tag">Prompt engineering</span><span class="tool-tag">Project skeletons</span><span class="tool-tag">Spec writing</span></div>
+      </div>
+      <div class="promise-card reveal">
+        <div class="promise-num">03</div>
+        <span class="promise-icon">🚀</span>
+        <h3>Ship it live</h3>
+        <p>Every project gets deployed to the real internet. You'll understand DevOps and cloud basics — CI/CD, GitHub Actions, hosting — so your builds don't just run locally.</p>
+        <div class="promise-tools"><span class="tool-tag">Vercel</span><span class="tool-tag">Railway</span><span class="tool-tag">GitHub Actions</span><span class="tool-tag">Docker basics</span></div>
+      </div>
+      <div class="promise-card reveal">
+        <div class="promise-num">04</div>
+        <span class="promise-icon">📐</span>
+        <h3>CS principles that last</h3>
+        <p>AI tools come and go. Principles don't. We ground you in logic, data structures, algorithms, and CS theory so you always understand what your AI is building.</p>
+        <div class="promise-tools"><span class="tool-tag">Algorithms</span><span class="tool-tag">Data structures</span><span class="tool-tag">CS theory</span></div>
+      </div>
+      <div class="promise-card reveal">
+        <div class="promise-num">05</div>
+        <span class="promise-icon">🌐</span>
+        <h3>Network & job shadowing</h3>
+        <p>We actively help you build industry connections. StackUp links high-performing students to job shadowing opportunities with real companies and professionals.</p>
+        <div class="promise-tools"><span class="tool-tag">Job shadowing</span><span class="tool-tag">Mentors</span><span class="tool-tag">Industry referrals</span></div>
+      </div>
+      <div class="promise-card reveal">
+        <div class="promise-num">06</div>
+        <span class="promise-icon">📂</span>
+        <h3>A portfolio you own</h3>
+        <p>You leave StackUp with real, live projects on your GitHub and resume. Things you built. Things you can show. Things that open doors before your first interview.</p>
+        <div class="promise-tools"><span class="tool-tag">GitHub portfolio</span><span class="tool-tag">Live URLs</span><span class="tool-tag">Case studies</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="curriculum" id="curriculum">
+    <span class="label reveal">curriculum</span>
+    <h2 class="reveal">Four phases.<br>One complete builder.</h2>
+    <p class="sub reveal">You enter at your level and work through the phases at your pace. Each phase ends with a real project you ship live.</p>
+    <div class="phase-grid">
+      <div class="phase-card p1 reveal">
+        <div class="phase-label">PHASE 01</div>
+        <h3>Foundations</h3>
+        <div class="phase-who">Grade 8–9 · beginners</div>
+        <ul class="phase-items">
+          <li>How computers and the internet work</li>
+          <li>Computational thinking & logic</li>
+          <li>Intro to Python with AI assistance</li>
+          <li>Your first Git repo</li>
+          <li>How to prompt AI to explain code</li>
+        </ul>
+        <div class="phase-project"><span>// phase project</span><strong>A personal webpage — live on the internet</strong></div>
+      </div>
+      <div class="phase-card p2 reveal">
+        <div class="phase-label">PHASE 02</div>
+        <h3>Builder Mode</h3>
+        <div class="phase-who">Grade 10–11 · growing</div>
+        <ul class="phase-items">
+          <li>Python APIs & data manipulation</li>
+          <li>Using v0 + Cursor to build UIs fast</li>
+          <li>Databases & backends (Supabase)</li>
+          <li>Prompting for full project scaffolds</li>
+          <li>Git branching, PRs, collaboration</li>
+        </ul>
+        <div class="phase-project"><span>// phase project</span><strong>A working web app with a real backend</strong></div>
+      </div>
+      <div class="phase-card p3 reveal">
+        <div class="phase-label">PHASE 03</div>
+        <h3>Ship It</h3>
+        <div class="phase-who">Grade 12 · advanced</div>
+        <ul class="phase-items">
+          <li>CI/CD with GitHub Actions</li>
+          <li>Cloud hosting (Vercel, Railway)</li>
+          <li>Intro to cybersecurity thinking</li>
+          <li>Building with Claude & OpenAI APIs</li>
+          <li>Linux fundamentals</li>
+        </ul>
+        <div class="phase-project"><span>// phase project</span><strong>An AI-integrated app — fully deployed</strong></div>
+      </div>
+      <div class="phase-card p4 reveal">
+        <div class="phase-label">PHASE 04</div>
+        <h3>First Year Ready</h3>
+        <div class="phase-who">Uni year 1 · launching</div>
+        <ul class="phase-items">
+          <li>Data structures & algorithms</li>
+          <li>Advanced prompting & AI workflows</li>
+          <li>DevOps fundamentals & Docker</li>
+          <li>Networking & security concepts</li>
+          <li>Portfolio polish & job prep</li>
+        </ul>
+        <div class="phase-project"><span>// phase project</span><strong>Portfolio-ready capstone + referral upward</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="maths-strip">
+    <div>
+      <h3>Maths track — still here.</h3>
+      <p>From Grade 8 algebra all the way to first-year university calculus and linear algebra. Structured, systematic, and built to complement your tech journey.</p>
+    </div>
+    <a href="#contact" class="btn-dark">ADD MATHS →</a>
+  </div>
+
+  <section id="tools">
+    <span class="label reveal">tools you'll master</span>
+    <h2 class="reveal">The actual stack.<br>Not the outdated one.</h2>
+    <p class="sub reveal">We teach you the tools working developers use today — not the ones that were popular a decade ago.</p>
+    <div class="tools-grid">
+      <div class="tool-card reveal">
+        <div class="tool-card-badge">AI CODING</div>
+        <div class="tool-card-icon">⌨️</div>
+        <h4>Cursor</h4>
+        <p>The AI-first code editor. You'll live in Cursor — learning to pair-program with AI to write, debug, and refactor code at speed.</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-card-badge">AI BUILDING</div>
+        <div class="tool-card-icon">🤖</div>
+        <h4>Claude & ChatGPT APIs</h4>
+        <p>Build real AI-powered features into your projects. Learn to call AI APIs, handle responses, and create products that use intelligence.</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-card-badge">UI GENERATION</div>
+        <div class="tool-card-icon">🎨</div>
+        <h4>v0 by Vercel</h4>
+        <p>Generate production-quality UI components from a prompt. You'll learn when to use it, how to tweak it, and how to ship it.</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-card-badge">VERSION CONTROL</div>
+        <div class="tool-card-icon">🐙</div>
+        <h4>Git & GitHub</h4>
+        <p>The non-negotiable foundation. Commits, branches, PRs, GitHub Actions — you'll work like a real developer from day one.</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-card-badge">DEPLOYMENT</div>
+        <div class="tool-card-icon">▲</div>
+        <h4>Vercel & Railway</h4>
+        <p>Push your code and watch it go live. You'll understand how deployment works so your projects exist on the real internet.</p>
+      </div>
+      <div class="tool-card reveal">
+        <div class="tool-card-badge">BACKEND</div>
+        <div class="tool-card-icon">🗄️</div>
+        <h4>Supabase</h4>
+        <p>A modern database + auth platform. Build apps that store real data, handle users, and scale — without managing servers.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="outcomes" style="padding-top:0">
+    <span class="label reveal">student outcomes</span>
+    <h2 class="reveal">What you walk away with.</h2>
+    <p class="sub reveal">Not just knowledge. Actual, tangible things that open doors.</p>
+    <div class="outcomes-row">
+      <div class="outcome-card reveal">
+        <div class="outcome-num">3+</div>
+        <h3>Live projects shipped</h3>
+        <p>Real apps deployed to real URLs. Each phase ends with something you built that the world can actually use — and that you can put on your resume.</p>
+      </div>
+      <div class="outcome-card reveal">
+        <div class="outcome-num">∞</div>
+        <h3>The mindset to keep going</h3>
+        <p>More than skills — you leave knowing how to learn. How to break down any problem, find any answer, and build anything with AI by your side.</p>
+      </div>
+      <div class="outcome-card reveal">
+        <div class="outcome-num">1st</div>
+        <h3>Network before you graduate</h3>
+        <p>Top students get connected to job shadowing, mentors, and industry professionals — building a network before most people even start trying.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <span class="label reveal">process</span>
+    <h2 class="reveal">How it works.</h2>
+    <p class="sub reveal">Five steps from "I'm interested" to "I just shipped my first project."</p>
+    <div class="steps-row">
+      <div class="step reveal">
+        <div class="step-n">01</div>
+        <h4>Free trial session</h4>
+        <p>Book a 30-min session, no commitment. We'll chat, demo what we teach, and see if StackUp is the right fit.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-n">02</div>
+        <h4>Level placement</h4>
+        <p>A quick assessment places you in the right phase — no stress, just finding where to start so you're challenged but not lost.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-n">03</div>
+        <h4>Join group or 1-on-1</h4>
+        <p>Weekly online sessions. Groups keep you motivated. 1-on-1 moves at your exact speed.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-n">04</div>
+        <h4>Build & ship</h4>
+        <p>Every phase, you build something real and deploy it live. Your GitHub fills up. Your portfolio takes shape.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-n">05</div>
+        <h4>Level up or refer</h4>
+        <p>Finish Phase 4? We connect you to advanced tutors and open doors to shadowing and networking opportunities.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="network">
+    <span class="label reveal">network & careers</span>
+    <h2 class="reveal">Your network starts here.</h2>
+    <div class="network-box reveal">
+      <div>
+        <h3>Job shadowing for top students</h3>
+        <p>StackUp isn't just about learning to code — it's about getting a foot in the door. High-performing students get actively connected to professionals and companies for real shadowing experiences.</p>
+        <p style="margin-top:.75rem;color:var(--muted2);font-size:.86rem">This is how you build a network before you even graduate. Before your peers have had their first internship, you've already been inside a real tech team.</p>
+      </div>
+      <div class="network-items">
+        <div class="network-item">
+          <div class="network-item-icon">🏢</div>
+          <div class="ni-text"><h5>Industry job shadowing</h5><p>Sit alongside working developers and see how real products get built day to day.</p></div>
+        </div>
+        <div class="network-item">
+          <div class="network-item-icon">🎓</div>
+          <div class="ni-text"><h5>Referrals to senior tutors</h5><p>Finish Phase 4? We connect you with specialist tutors for year 2 and beyond.</p></div>
+        </div>
+        <div class="network-item">
+          <div class="network-item-icon">🤝</div>
+          <div class="ni-text"><h5>Mentor connections</h5><p>Access to professionals who can advise on careers, university paths, and the industry.</p></div>
+        </div>
+        <div class="network-item">
+          <div class="network-item-icon">💼</div>
+          <div class="ni-text"><h5>Portfolio & resume support</h5><p>We help you present what you've built in a way that actually lands opportunities.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="formats" style="padding-top:0">
+    <span class="label reveal">session formats</span>
+    <h2 class="reveal">Pick your setup.</h2>
+    <p class="sub reveal">Different students, different needs. We've got a format that works.</p>
+    <div class="formats-grid">
+      <div class="format-card reveal">
+        <div class="format-id">FORMAT_01</div>
+        <h3>Group Classes</h3>
+        <p>4–6 students per group, same phase. Weekly sessions, collaborative energy, affordable pricing. Great if you like learning alongside others and staying accountable.</p>
+        <span class="format-price">// most popular · international groups</span>
+      </div>
+      <div class="format-card reveal">
+        <div class="format-id">FORMAT_02</div>
+        <h3>One-on-One</h3>
+        <p>Just you and your tutor. Move at your pace, go deep on whatever you need, and get feedback tailored exactly to your project and goals.</p>
+        <span class="format-price">// premium · fastest progress</span>
+      </div>
+      <div class="format-card reveal">
+        <div class="format-id">FORMAT_03</div>
+        <h3>Project Sprints</h3>
+        <p>Intensive short bursts focused entirely on building and shipping one project. For students who want to move fast and have something live within weeks.</p>
+        <span class="format-price">// available as add-on</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+    <span class="label reveal">questions</span>
+    <h2 class="reveal">Frequently asked.</h2>
+    <div class="faq-col">
+      <div class="faq-item reveal">
+        <div class="faq-q">Do I need prior coding experience?</div>
+        <div class="faq-a">Not at all. Phase 1 starts from absolute zero. If you've never written a line of code, that's exactly where we begin. The AI tools actually make this easier than ever for beginners.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">Why learn to code if AI can code for me?</div>
+        <div class="faq-a">Because AI code breaks. It hallucinates. It makes architectural decisions you'll regret. The people who will thrive aren't those who avoid coding — they're the ones who understand it well enough to direct, fix, and improve what AI generates. That's exactly what we teach.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">What countries do you accept students from?</div>
+        <div class="faq-a">Anywhere with a stable internet connection. We specifically work with international students because it lets us offer competitive pricing while building a genuinely diverse cohort. We're timezone-flexible and accommodate evenings and weekends.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">What currency do you charge in?</div>
+        <div class="faq-a">We accept USD, EUR, and GBP depending on your location. Payment is handled securely online per session block. We'll confirm pricing on your free trial call.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">What age group is StackUp for?</div>
+        <div class="faq-a">Primarily high school students (Grades 8–12) and first-year university students. Phase 1 is accessible from around age 13 and up. The curriculum scales with the student.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">Can I do both the Tech and Maths tracks?</div>
+        <div class="faq-a">Yes — many students do, and they complement each other well. We'll make sure sessions don't clash and that the workload is realistic for your school schedule.</div>
+      </div>
+      <div class="faq-item reveal">
+        <div class="faq-q">How does the job shadowing work?</div>
+        <div class="faq-a">As we grow our network of industry partners, high-performing StackUp students will be connected to professionals for structured shadowing experiences. This is actively being built and available to students who progress well through the program.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <span class="cta-code reveal"><em>stackup</em>.enroll({ trial: true, cost: <em>free</em> })</span>
+    <h2 class="reveal">Your first session is free.</h2>
+    <p class="reveal">No commitment. Just show up, see how we teach, and decide if StackUp is the place you want to build from.</p>
+    <a href="#contact" class="btn-main reveal">CLAIM YOUR FREE TRIAL →</a>
+  </section>
+
+  <section id="contact">
+    <span class="label reveal">get started</span>
+    <h2 class="reveal">Let's build something.</h2>
+    <div class="contact-wrap">
+      <div class="contact-form reveal">
+        <div class="fg"><label>// YOUR NAME</label><input type="text" placeholder="Full name" /></div>
+        <div class="fg"><label>// EMAIL ADDRESS</label><input type="email" placeholder="you@email.com" /></div>
+        <div class="fg"><label>// COUNTRY</label><input type="text" placeholder="Where are you based?" /></div>
+        <div class="fg">
+          <label>// CURRENT LEVEL</label>
+          <select>
+            <option value="">Select your grade / year</option>
+            <option>Grade 8–9</option><option>Grade 10–11</option><option>Grade 12</option>
+            <option>First year university</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>// SESSION FORMAT</label>
+          <select>
+            <option value="">Preferred format</option>
+            <option>Group class</option><option>One-on-one</option><option>Not sure yet</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>// TRACKS INTERESTED IN</label>
+          <select>
+            <option value="">Select track(s)</option>
+            <option>Tech track only</option><option>Maths track only</option>
+            <option>Both tracks</option><option>Not sure yet</option>
+          </select>
+        </div>
+        <div class="fg"><label>// WHAT DO YOU WANT TO BUILD?</label><textarea rows="3" placeholder="Tell us what excites you — an app, a game, a business idea. Or just say you don't know yet."></textarea></div>
+        <button class="submit-btn" onclick="handleSubmit(event)">SEND REQUEST →</button>
+      </div>
+      <div class="contact-sidebar reveal">
+        <div class="contact-fact"><div class="fact-icon">⚡</div><div class="fact-text"><h5>We respond within 24 hours</h5><p>Send your request and we'll follow up with available trial slots and answer any questions.</p></div></div>
+        <div class="contact-fact"><div class="fact-icon">🌍</div><div class="fact-text"><h5>Fully online, globally</h5><p>Sessions run on Google Meet. No special software — just a laptop, internet, and curiosity.</p></div></div>
+        <div class="contact-fact"><div class="fact-icon">🕐</div><div class="fact-text"><h5>Timezone flexible</h5><p>We accommodate different time zones. Evenings and weekends available for most regions.</p></div></div>
+        <div class="contact-fact"><div class="fact-icon">✉️</div><div class="fact-text"><h5>Prefer email?</h5><p style="color:var(--lime);font-family:var(--mono);font-size:.8rem">hello@stackup.build</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">stack_up();</div>
+    <div class="footer-links">
+      <a href="#curriculum">curriculum</a>
+      <a href="#tools">tools</a>
+      <a href="#outcomes">outcomes</a>
+      <a href="#contact">contact</a>
+    </div>
+    <div class="footer-copy">© 2026 StackUp. All rights reserved.</div>
+  </footer>
+
+  <script>
+    const cur=document.getElementById('cur'),curR=document.getElementById('cur-r');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+    (function anim(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(anim);})();
+    document.querySelectorAll('a,button,.faq-q,.project-row,.tool-card,.promise-card').forEach(el=>{
+      el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));
+      el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
+    });
+    const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:.08});
+    document.querySelectorAll('.reveal').forEach(r=>obs.observe(r));
+    document.querySelectorAll('.faq-q').forEach(q=>{
+      q.addEventListener('click',()=>{const item=q.parentElement,was=item.classList.contains('open');document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));if(!was)item.classList.add('open');});
+    });
+    function handleSubmit(e){const b=e.target;b.textContent='REQUEST SENT ✓';b.style.background='#a3e635';b.disabled=true;}
+  </script>
+</body>
+</html>
