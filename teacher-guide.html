@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StackUp — Teacher Guide: Builder's Mindset</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #060810; --bg2: #0c0f1a; --surface: #0f1220; --surface2: #151929;
+      --border: #1a2035; --border2: #222840;
+      --lime: #c6f135; --lime-dim: rgba(198,241,53,0.1); --lime-border: rgba(198,241,53,0.2);
+      --blue: #4d7cfe; --pink: #ff4ecd; --amber: #fbbf24;
+      --text: #e2e8f8; --muted: #5a6585; --muted2: #8895b3;
+      --mono: 'Fira Code', monospace; --sans: 'Space Grotesk', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); }
+
+    .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 60% 40% at 80% 10%, rgba(251,191,36,0.04), transparent 60%),
+        linear-gradient(rgba(198,241,53,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(198,241,53,0.015) 1px, transparent 1px);
+      background-size: auto, 56px 56px, 56px 56px;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2.5rem; border-bottom: 1px solid var(--border);
+      background: rgba(6,8,16,0.95); backdrop-filter: blur(12px);
+    }
+    .nav-logo { font-family: var(--mono); font-size: .9rem; color: var(--lime); }
+    .nav-logo em { color: var(--muted); font-style: normal; }
+    .nav-badge { font-family: var(--mono); font-size: .65rem; letter-spacing: .1em; color: var(--amber); border: 1px solid rgba(251,191,36,0.3); padding: .25rem .7rem; }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a { font-family: var(--mono); font-size: .72rem; color: var(--muted2); text-decoration: none; transition: color .2s; }
+    .nav-links a:hover { color: var(--lime); }
+
+    .hero { padding: 4rem 2.5rem 3rem; border-bottom: 1px solid var(--border); position: relative; z-index: 1; }
+    .hero-tag { font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; color: var(--amber); margin-bottom: .75rem; display: block; }
+    .hero h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 700; letter-spacing: -1.5px; margin-bottom: .75rem; }
+    .hero p { color: var(--muted2); max-width: 600px; line-height: 1.75; font-size: .98rem; }
+
+    .overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); }
+    .ov-card { background: var(--surface); padding: 1.75rem; }
+    .ov-card-num { font-family: var(--mono); font-size: 1.8rem; font-weight: 700; color: var(--lime); margin-bottom: .3rem; }
+    .ov-card p { color: var(--muted2); font-size: .82rem; line-height: 1.6; }
+
+    main { max-width: 900px; margin: 0 auto; padding: 3rem 2.5rem; position: relative; z-index: 1; }
+
+    .section-head { margin: 3rem 0 1.5rem; }
+    .section-label { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; color: var(--lime); margin-bottom: .5rem; display: block; }
+    .section-label::before { content: '// '; color: var(--muted); }
+    h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -.5px; }
+
+    /* LESSON CARD */
+    .lesson-card { border: 1px solid var(--border2); margin-bottom: 2rem; overflow: hidden; }
+    .lesson-card-header {
+      display: flex; align-items: flex-start; gap: 1.25rem;
+      padding: 1.5rem 1.75rem; background: var(--surface);
+      border-bottom: 1px solid var(--border); cursor: pointer;
+      transition: background .2s;
+    }
+    .lesson-card-header:hover { background: var(--surface2); }
+    .lc-num { font-family: var(--mono); font-size: .7rem; color: var(--lime); border: 1px solid var(--lime-border); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .lc-title { flex: 1; }
+    .lc-title h3 { font-size: 1rem; font-weight: 700; margin-bottom: .2rem; }
+    .lc-title p { color: var(--muted2); font-size: .82rem; }
+    .lc-meta { display: flex; gap: 1rem; flex-shrink: 0; align-items: flex-start; }
+    .lc-tag { font-family: var(--mono); font-size: .62rem; padding: .2rem .55rem; border: 1px solid var(--border2); color: var(--muted); white-space: nowrap; }
+    .lc-tag.time { color: var(--lime); border-color: var(--lime-border); }
+    .expand-icon { font-family: var(--mono); font-size: .9rem; color: var(--muted); transition: transform .25s; margin-top: .1rem; }
+    .lesson-card.open .expand-icon { transform: rotate(45deg); }
+
+    .lesson-body { display: none; padding: 1.75rem; }
+    .lesson-card.open .lesson-body { display: block; }
+
+    .guide-section { margin-bottom: 2rem; }
+    .guide-section h4 { font-size: .88rem; font-weight: 700; color: var(--text); margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+    .guide-section h4::before { content: ''; display: block; width: 16px; height: 2px; background: var(--lime); }
+    .guide-section p, .guide-section li { color: var(--muted2); font-size: .88rem; line-height: 1.8; }
+    .guide-section ul { padding-left: 1.25rem; }
+    .guide-section ul li { margin-bottom: .3rem; }
+
+    .teacher-tip {
+      background: rgba(251,191,36,0.07); border-left: 3px solid var(--amber);
+      padding: 1rem 1.25rem; margin: 1rem 0;
+    }
+    .tip-label { font-family: var(--mono); font-size: .65rem; color: var(--amber); letter-spacing: .08em; margin-bottom: .4rem; }
+    .teacher-tip p { color: var(--muted2); font-size: .86rem; line-height: 1.75; }
+
+    .common-mistake {
+      background: rgba(255,78,205,0.07); border-left: 3px solid var(--pink);
+      padding: 1rem 1.25rem; margin: 1rem 0;
+    }
+    .mistake-label { font-family: var(--mono); font-size: .65rem; color: var(--pink); letter-spacing: .08em; margin-bottom: .4rem; }
+    .common-mistake p { color: var(--muted2); font-size: .86rem; line-height: 1.75; }
+
+    .timing-bar { display: flex; gap: 0; margin: 1rem 0; overflow: hidden; }
+    .timing-seg { padding: .5rem .85rem; font-family: var(--mono); font-size: .65rem; letter-spacing: .06em; }
+    .timing-seg.intro { background: rgba(77,124,254,.15); color: var(--blue); flex: 1; }
+    .timing-seg.core { background: rgba(198,241,53,.12); color: var(--lime); flex: 2; }
+    .timing-seg.activity { background: rgba(255,78,205,.1); color: var(--pink); flex: 2; }
+    .timing-seg.debrief { background: rgba(251,191,36,.1); color: var(--amber); flex: 1; }
+
+    .script-box { background: var(--bg); border: 1px solid var(--border2); padding: 1.25rem; margin: 1rem 0; }
+    .script-label { font-family: var(--mono); font-size: .65rem; color: var(--muted); letter-spacing: .08em; margin-bottom: .6rem; }
+    .script-box p { font-size: .88rem; line-height: 1.8; color: var(--text); font-style: italic; }
+    .script-box strong { color: var(--lime); font-style: normal; }
+
+    .question-list { display: flex; flex-direction: column; gap: .6rem; margin-top: .75rem; }
+    .question-item { display: flex; gap: .75rem; align-items: flex-start; }
+    .question-item::before { content: 'Q'; font-family: var(--mono); font-size: .65rem; color: var(--lime); border: 1px solid var(--lime-border); width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .question-item p { color: var(--muted2); font-size: .88rem; line-height: 1.65; }
+
+    .checklist { display: flex; flex-direction: column; gap: .4rem; }
+    .check-item { display: flex; gap: .75rem; align-items: center; font-size: .87rem; color: var(--muted2); }
+    .check-item::before { content: '□'; font-family: var(--mono); color: var(--lime); }
+
+    .philosophy-block { background: var(--surface); border: 1px solid var(--border2); padding: 2rem; margin: 2rem 0; }
+    .philosophy-block h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+    footer { border-top: 1px solid var(--border); padding: 2rem 2.5rem; display: flex; align-items: center; justify-content: space-between; }
+    .footer-logo { font-family: var(--mono); font-size: .85rem; color: var(--lime); }
+    .footer-copy { font-family: var(--mono); font-size: .68rem; color: var(--muted); }
+
+    @media(max-width: 768px) {
+      nav { padding: 1rem 1.25rem; }
+      .nav-links { display: none; }
+      main { padding: 1.5rem; }
+      .hero { padding: 2.5rem 1.25rem; }
+      .overview-grid { grid-template-columns: 1fr 1fr; }
+      .lc-meta { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-layer"></div>
+
+<nav>
+  <div class="nav-logo">stack<em>_</em>up<em>();</em></div>
+  <div class="nav-links">
+    <a href="#overview">overview</a>
+    <a href="#lessons">lessons</a>
+    <a href="#philosophy">philosophy</a>
+  </div>
+  <div class="nav-badge">TEACHER GUIDE — CONFIDENTIAL</div>
+</nav>
+
+<div class="hero" id="overview">
+  <span class="hero-tag">// TEACHER GUIDE · BUILDER'S MINDSET MODULE · FREE COURSE</span>
+  <h1>Your complete guide<br>to teaching this module.</h1>
+  <p>Everything you need to run the Builder's Mindset module confidently — lesson scripts, timing breakdowns, discussion questions, common student mistakes, and teaching philosophy. Read it once before you start. Refer back as needed.</p>
+</div>
+
+<div class="overview-grid">
+  <div class="ov-card">
+    <div class="ov-card-num">6</div>
+    <p>lessons in this module, each 30–45 min including activity</p>
+  </div>
+  <div class="ov-card">
+    <div class="ov-card-num">~3h</div>
+    <p>total contact time. Can run across 3 weekly 1-hour sessions or 6 short sessions</p>
+  </div>
+  <div class="ov-card">
+    <div class="ov-card-num">0</div>
+    <p>paid tools required. Claude free tier, browser, and a notebook is all students need</p>
+  </div>
+  <div class="ov-card">
+    <div class="ov-card-num">AUS</div>
+    <p>audience focus. Examples are Australian-contextualised. Students 14–20, beginner level.</p>
+  </div>
+</div>
+
+<main>
+
+  <!-- PHILOSOPHY -->
+  <div class="section-head" id="philosophy">
+    <span class="section-label">teaching philosophy</span>
+    <h2>What you're actually teaching</h2>
+  </div>
+
+  <div class="philosophy-block">
+    <h3>The real goal of this module</h3>
+    <div class="guide-section">
+      <p>You are not teaching coding in this module. You are teaching a way of seeing problems. The goal is that by Lesson 6, a student can look at any challenge — technical or not — and approach it with structured curiosity rather than panic or avoidance.</p>
+      <p style="margin-top:.75rem">This is harder to measure than "can they write a for loop" but it's far more valuable. The students who develop this mindset will outperform those who just learn syntax, every single time.</p>
+    </div>
+    <div class="teacher-tip" style="margin-top:1rem">
+      <div class="tip-label">TEACHING TIP</div>
+      <p>You don't need to know everything. In fact, modelling "I don't know — let's find out" is one of the most powerful things you can do. Students learn that not knowing is the starting point, not a failure.</p>
+    </div>
+    <div class="guide-section" style="margin-top:1.25rem">
+      <h4>The design process as your anchor</h4>
+      <p>Every lesson in this module can be tied back to the design process: research → define → ideate → prototype → test. When students feel lost, bring them back to "which step are we on?" This gives them a map, not just a destination.</p>
+      <p style="margin-top:.75rem">The connection to art and design is intentional and real — not a metaphor. Students with design backgrounds have an enormous advantage in software because they already think in systems and feedback loops. Honour that.</p>
+    </div>
+  </div>
+
+  <!-- LESSONS -->
+  <div class="section-head" id="lessons">
+    <span class="section-label">lesson guides</span>
+    <h2>All six lessons</h2>
+  </div>
+
+  <!-- L0: WELCOME -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">00</div>
+      <div class="lc-title">
+        <h3>Welcome & How This Works</h3>
+        <p>Orientation, expectations, and the learning contract</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">15 min</span>
+        <span class="lc-tag">orientation</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Purpose of this session</h4>
+        <p>This is not a content session — it's a relationship session. Your goal is for every student to feel like this is a place where it's safe to not know things. Set the tone for the entire module here.</p>
+      </div>
+      <div class="guide-section">
+        <h4>Suggested script</h4>
+        <div class="script-box">
+          <div class="script-label">// OPENING — SAY SOMETHING LIKE THIS</div>
+          <p>"Before we learn anything, I want to be upfront with you. I'm not going to pretend I know everything about AI and coding — <strong>nobody does right now, including people who've been doing it for 20 years.</strong> What I can do is show you how to think about problems and how to use the tools that exist. The rest we figure out together."</p>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>Logistics to cover</h4>
+        <ul>
+          <li>How the portal works (show them the sidebar navigation)</li>
+          <li>How to access the Student Workbook PDF</li>
+          <li>What "marking complete" does (tracks their own progress)</li>
+          <li>That the access code is theirs alone — not for sharing</li>
+          <li>When sessions are, how to reach you between sessions</li>
+        </ul>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">GROUP SETTING TIP</div>
+        <p>If teaching a group, start with a quick round: each student says their name + one thing they've built or created (anything — a cake, a playlist, a sketch). This frames everyone as already being a creator.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- L1 -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">01</div>
+      <div class="lc-title">
+        <h3>What is a Builder's Mindset?</h3>
+        <p>The three questions, the design process connection, and the first activity</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">40 min</span>
+        <span class="lc-tag">mindset</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Session timing</h4>
+        <div class="timing-bar">
+          <div class="timing-seg intro">Intro (5 min)</div>
+          <div class="timing-seg core">Core concept (10 min)</div>
+          <div class="timing-seg activity">Activity (20 min)</div>
+          <div class="timing-seg debrief">Debrief (5 min)</div>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>What to emphasise</h4>
+        <ul>
+          <li>The mindset is a skill, not a personality trait — learnable by everyone</li>
+          <li>The design process connection is central, not supplementary</li>
+          <li>"I don't know yet" is the correct starting position for every problem</li>
+          <li>Freelancers get paid for their thinking as much as their building</li>
+        </ul>
+      </div>
+      <div class="guide-section">
+        <h4>Discussion questions (choose 1–2)</h4>
+        <div class="question-list">
+          <div class="question-item"><p>Can you think of a time a problem seemed impossible until someone broke it into smaller parts?</p></div>
+          <div class="question-item"><p>What's the difference between a person who gives up on a bug and one who keeps going?</p></div>
+          <div class="question-item"><p>If a client told you "build me something cool" — what would you do first?</p></div>
+        </div>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">THE THREE QUESTIONS IN PRACTICE</div>
+        <p>During the activity debrief, pick one student's "frustration" and walk through the three questions out loud with the group. Model the thinking process in real time. This is more valuable than any explanation.</p>
+      </div>
+      <div class="common-mistake">
+        <div class="mistake-label">COMMON STUDENT MISTAKE</div>
+        <p>Students pick a "frustration" that's too abstract (e.g. "the world is unfair"). Redirect them: "What's something that took you longer than it should have this week?" Make it concrete and personal.</p>
+      </div>
+      <div class="guide-section">
+        <h4>Activity debrief questions</h4>
+        <div class="question-list">
+          <div class="question-item"><p>What was the "smallest version" you came up with? Is it actually buildable?</p></div>
+          <div class="question-item"><p>How did it feel to work backwards from the solution?</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- L2 -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">02</div>
+      <div class="lc-title">
+        <h3>Patterns Everywhere</h3>
+        <p>Maths as pattern recognition, the art connection, and the Fibonacci activity</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">45 min</span>
+        <span class="lc-tag">patterns · maths</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Session timing</h4>
+        <div class="timing-bar">
+          <div class="timing-seg intro">Intro (5 min)</div>
+          <div class="timing-seg core">Core concept (10 min)</div>
+          <div class="timing-seg activity">Activity (25 min)</div>
+          <div class="timing-seg debrief">Debrief (5 min)</div>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>Why this lesson matters</h4>
+        <p>This lesson does two things. First, it reframes maths for students who think they "can't do maths" — because pattern recognition is something everyone does naturally. Second, it introduces the concept that AI models work by detecting patterns, which makes the student a much better AI user.</p>
+      </div>
+      <div class="guide-section">
+        <h4>The Fibonacci connection (handle carefully)</h4>
+        <p>The Fibonacci sequence (1, 1, 2, 3, 5, 8...) is a good entry point because students often already know it from biology or art. The rule is: each number = the sum of the two before it. The point isn't the maths — it's that once you see the rule, you can predict anything in the sequence, and write code to generate it.</p>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">FOR STUDENTS WHO THINK THEY'RE BAD AT MATHS</div>
+        <p>Ask them: "Can you recognise when a song has a chorus? When a movie follows a formula?" That's pattern recognition. It's the same thing. Maths anxiety comes from calculation, not from pattern-spotting. Keep the focus on seeing, not solving.</p>
+      </div>
+      <div class="guide-section">
+        <h4>The art + design connection to emphasise</h4>
+        <ul>
+          <li>Grid systems in graphic design are mathematical structures</li>
+          <li>Colour theory (complementary colours, triads) uses proportional relationships</li>
+          <li>Good typography uses ratio and repetition — mathematical principles</li>
+          <li>Any student who did visual design has already been doing this</li>
+        </ul>
+      </div>
+      <div class="common-mistake">
+        <div class="mistake-label">COMMON STUDENT MISTAKE</div>
+        <p>Students find patterns on a website (e.g. "the nav has links") but don't go deep enough. Push them: "Why are there exactly that many columns? What stays constant as you scroll? What rule makes the spacing feel right?" Precision in observation transfers directly to precision in code.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- L3 -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">03</div>
+      <div class="lc-title">
+        <h3>Design Thinking Meets Code</h3>
+        <p>The design process as a freelance framework, the bakery brief activity</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">45 min</span>
+        <span class="lc-tag">design · freelance</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Session timing</h4>
+        <div class="timing-bar">
+          <div class="timing-seg intro">Intro (5 min)</div>
+          <div class="timing-seg core">Core concept (10 min)</div>
+          <div class="timing-seg activity">Activity (25 min)</div>
+          <div class="timing-seg debrief">Debrief (5 min)</div>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>The key insight to land</h4>
+        <p>Students who've done design already have a professional edge — they just haven't connected it to software yet. Your job is to make that connection explicit and show them it's not incidental, it's central. The best developers are design thinkers.</p>
+      </div>
+      <div class="guide-section">
+        <h4>The bakery scenario — how to run it</h4>
+        <ul>
+          <li>Read the bakery scenario aloud as a group first</li>
+          <li>Ask students: "What's missing from this brief?" — let them surface the gaps</li>
+          <li>Then have them write their 5 questions independently</li>
+          <li>Compare questions in the debrief — interesting how different they are</li>
+        </ul>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">FOR GROUPS — ROLE PLAY IT</div>
+        <p>Have one student play the bakery owner and another play the developer. Run a 5-minute "discovery call." The bakery owner should be vague and unsure — that's realistic. The developer asks questions. This usually generates great discussion about what clients actually need vs. what they say they want.</p>
+      </div>
+      <div class="guide-section">
+        <h4>Australian context note</h4>
+        <p>The bakery is in Brisbane deliberately. Encourage students to think about real small businesses near them — a local café, a surf school, a tutoring centre. Freelance clients often come from your immediate network first. Make it feel real and local.</p>
+      </div>
+      <div class="common-mistake">
+        <div class="mistake-label">COMMON STUDENT MISTAKE</div>
+        <p>Students jump to "I'd use WordPress" or "I'd build a React app" before they've understood the problem. Gently redirect: "Before we choose tools, do we know enough about what they actually need?" This is the most important professional habit to build early.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- L4 -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">04</div>
+      <div class="lc-title">
+        <h3>Breaking Problems Into Pieces</h3>
+        <p>Decomposition, AI prompting precision, the tree diagram activity</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">45 min</span>
+        <span class="lc-tag">decomposition · ai</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Session timing</h4>
+        <div class="timing-bar">
+          <div class="timing-seg intro">Intro (5 min)</div>
+          <div class="timing-seg core">Core concept (10 min)</div>
+          <div class="timing-seg activity">Activity (25 min)</div>
+          <div class="timing-seg debrief">Debrief (5 min)</div>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>Core concept: decomposition</h4>
+        <p>Decomposition is not a coding skill — it's a thinking skill that happens before any code is written. Students who can decompose well will debug faster, prompt better, and deliver cleaner work to clients. This lesson is arguably the most practically important in the module.</p>
+      </div>
+      <div class="guide-section">
+        <h4>The AI connection is critical</h4>
+        <p>Spend time here. The reason vague prompts produce bad output is that the AI can't decompose the problem for you without context. When you decompose first, your prompt becomes specific — and specific prompts produce dramatically better results. This is a skill most adult developers haven't learnt. Your students will be ahead of them.</p>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">LIVE DEMO — DO THIS IN SESSION</div>
+        <p>Open Claude in front of the class. First, enter: "Build me an app." Show the output. Then enter a properly decomposed, specific prompt for the same idea. Show the difference. This is the most convincing demonstration possible — seeing is believing.</p>
+      </div>
+      <div class="guide-section">
+        <h4>Tree diagram — what to look for</h4>
+        <ul>
+          <li>Students should go at least 3 levels deep (app → feature → component)</li>
+          <li>Leaves of the tree should be small enough to describe in one sentence</li>
+          <li>Good sign: the micro-prompt they write sounds like something a developer would actually say</li>
+          <li>Concern: if their smallest pieces are still "make the whole login system" — go deeper</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- L5 -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">05</div>
+      <div class="lc-title">
+        <h3>Your First AI Conversation</h3>
+        <p>Prompt formula, hands-on Claude session, the bakery prompt activity</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">45 min</span>
+        <span class="lc-tag">practical · ai</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Session timing</h4>
+        <div class="timing-bar">
+          <div class="timing-seg intro">Intro (5 min)</div>
+          <div class="timing-seg core">Core concept (10 min)</div>
+          <div class="timing-seg activity">Activity (25 min)</div>
+          <div class="timing-seg debrief">Debrief (5 min)</div>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>Before this session</h4>
+        <ul>
+          <li>Check every student has a free Claude account (claude.ai)</li>
+          <li>Confirm internet is stable — this lesson requires live AI access</li>
+          <li>Have a backup activity ready (write prompts on paper, test later) if connectivity fails</li>
+        </ul>
+      </div>
+      <div class="guide-section">
+        <h4>The prompt formula — keep it simple</h4>
+        <p>Context → Task → Constraints → Format. That's it. Don't overcomplicate. Students will develop intuition for when to use each element over time. Right now, the habit of adding context before asking is the most important shift.</p>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">WHEN AI GIVES A WRONG OR WEIRD ANSWER</div>
+        <p>This will happen. Treat it as a teaching moment, not a failure: "Interesting — why do you think it said that? What context did we not give it?" This builds critical AI literacy, which is exactly what makes a great developer: someone who uses AI well and knows when it's wrong.</p>
+      </div>
+      <div class="guide-section">
+        <h4>The multi-turn conversation is the point</h4>
+        <p>Most students will type one message and read the response passively. Push them to reply: "Too long — make it simpler." "What would this cost?" "Can you show me a different approach?" The back-and-forth is where the real learning happens. AI as a conversation, not a search engine.</p>
+      </div>
+      <div class="common-mistake">
+        <div class="mistake-label">COMMON STUDENT MISTAKE</div>
+        <p>Students copy the AI's output without reading it. Ask them: "Does this actually solve the bakery problem? Read it back to me in your own words." If they can't, they haven't engaged with the output critically. This is the most important meta-skill of the AI era.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- L6 -->
+  <div class="lesson-card">
+    <div class="lesson-card-header" onclick="toggleCard(this)">
+      <div class="lc-num">06</div>
+      <div class="lc-title">
+        <h3>The Freelance Mindset</h3>
+        <p>What freelancing is, the freelancer path, final module activity</p>
+      </div>
+      <div class="lc-meta">
+        <span class="lc-tag time">45 min</span>
+        <span class="lc-tag">freelance · careers</span>
+      </div>
+      <div class="expand-icon">+</div>
+    </div>
+    <div class="lesson-body">
+      <div class="guide-section">
+        <h4>Session timing</h4>
+        <div class="timing-bar">
+          <div class="timing-seg intro">Intro (5 min)</div>
+          <div class="timing-seg core">Core concept (10 min)</div>
+          <div class="timing-seg activity">Activity (25 min)</div>
+          <div class="timing-seg debrief">Debrief (5 min)</div>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>Set the tone honestly</h4>
+        <p>Freelancing is not passive income — it's real work that requires real skills. But it's also completely accessible to a motivated high school student. The path from "learning to code" to "first paid client" can be as short as six months with the right approach. Don't oversell, don't undersell. Be real.</p>
+      </div>
+      <div class="guide-section">
+        <h4>The freelancer shadowing opportunity</h4>
+        <p>Mention this explicitly. High-performing students who complete Phase 1 and 2 will get connected to working freelancers — not big companies, but real independent developers. This is something most students will never get access to through traditional school. Frame it as a reward for staying committed.</p>
+      </div>
+      <div class="teacher-tip">
+        <div class="tip-label">AUSTRALIAN CONTEXT — USE THIS</div>
+        <p>Australian small businesses are a massive market. There are over 2 million small businesses in Australia, most of which have weak or no digital presence. The demand for affordable freelance web/app work from local developers is real and growing. Your students are building toward a real opportunity, not a fantasy.</p>
+      </div>
+      <div class="guide-section">
+        <h4>Final activity — what to look for in their pitches</h4>
+        <ul>
+          <li>Is the pitch specific about who they help? (Not "anyone" — that's too vague)</li>
+          <li>Is the potential client they named real and reachable?</li>
+          <li>Is their price range realistic? (First clients: $100–$500 for a simple site is normal)</li>
+          <li>Does the workbook reflection show genuine shift in thinking?</li>
+        </ul>
+      </div>
+      <div class="guide-section">
+        <h4>Module close — what to say</h4>
+        <div class="script-box">
+          <div class="script-label">// CLOSING SCRIPT</div>
+          <p>"You've just done something most adults haven't done — you've started thinking about how to build things with AI deliberately, not accidentally. Phase 1 is where the actual building starts. You'll write real code, ship a real project, and put it on a real URL. Everything you practised thinking about in this module, you're about to start making real. I'll see you there."</p>
+        </div>
+      </div>
+      <div class="guide-section">
+        <h4>End-of-module checklist</h4>
+        <div class="checklist">
+          <div class="check-item">Every student has completed all 6 lessons in the portal</div>
+          <div class="check-item">Workbooks filled in (at least partially) for each activity</div>
+          <div class="check-item">Students have a working Claude free account</div>
+          <div class="check-item">Final pitches written in Lesson 6 activity</div>
+          <div class="check-item">Students know next steps to enrol in Phase 1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENERAL TIPS -->
+  <div class="section-head">
+    <span class="section-label">general teaching notes</span>
+    <h2>Running the sessions</h2>
+  </div>
+
+  <div class="philosophy-block">
+    <h3>Group sessions vs. 1-on-1</h3>
+    <div class="guide-section">
+      <p><strong>Groups (4–6 students):</strong> Run the discussion questions as a full group debrief. Pair students for activities where possible — two people decomposing a problem together is closer to real work than solo. Use the bakery roleplay in Lesson 3.</p>
+      <p style="margin-top:.75rem"><strong>1-on-1:</strong> Go deeper on whatever interests the student most. If they're drawn to the design connection, spend more time there. If they're excited about AI, start the Claude session in Lesson 4 instead of waiting for Lesson 5. Follow their energy.</p>
+    </div>
+  </div>
+
+  <div class="philosophy-block">
+    <h3>Managing different skill levels</h3>
+    <div class="guide-section">
+      <ul>
+        <li><strong>Total beginners:</strong> Keep the Fibonacci activity gentle — the rule discovery is enough. Don't push into code notation.</li>
+        <li><strong>Students with some coding experience:</strong> Challenge them to connect each lesson to a project they've tried before. Where did they skip the design thinking? Where did decomposition break down?</li>
+        <li><strong>Overconfident students:</strong> Gently introduce ambiguity. "Okay, now explain why that specific solution — not just what it does." Confidence without understanding is the biggest risk.</li>
+      </ul>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-logo">stack_up(); // teacher guide</div>
+  <div class="footer-copy">Confidential — StackUp internal document. Not for distribution.</div>
+</footer>
+
+<script>
+  function toggleCard(header) {
+    const card = header.parentElement;
+    card.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

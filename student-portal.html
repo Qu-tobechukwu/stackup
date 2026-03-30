@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StackUp — Builder's Mindset</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #060810; --bg2: #0c0f1a; --surface: #0f1220; --surface2: #151929;
+      --border: #1a2035; --border2: #222840;
+      --lime: #c6f135; --lime-dim: rgba(198,241,53,0.1); --lime-border: rgba(198,241,53,0.2);
+      --blue: #4d7cfe; --pink: #ff4ecd;
+      --text: #e2e8f8; --muted: #5a6585; --muted2: #8895b3;
+      --mono: 'Fira Code', monospace; --sans: 'Space Grotesk', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+
+    /* LOCK SCREEN */
+    #lock {
+      position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lock-box {
+      background: var(--surface); border: 1px solid var(--border2);
+      padding: 2.5rem; width: 100%; max-width: 380px; margin: 1rem;
+    }
+    .lock-logo { font-family: var(--mono); font-size: .95rem; color: var(--lime); margin-bottom: 1.75rem; }
+    .lock-logo em { color: var(--muted); font-style: normal; }
+    .lock-box h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: .4rem; }
+    .lock-box p { color: var(--muted2); font-size: .85rem; margin-bottom: 1.5rem; line-height: 1.6; }
+    .lock-box input {
+      width: 100%; background: var(--bg); border: 1px solid var(--border2);
+      color: var(--text); padding: .8rem 1rem; font-family: var(--mono);
+      font-size: .85rem; outline: none; margin-bottom: .75rem;
+      transition: border-color .2s;
+    }
+    .lock-box input:focus { border-color: var(--lime); }
+    .lock-btn {
+      width: 100%; background: var(--lime); color: var(--bg);
+      border: none; padding: .85rem; font-family: var(--mono);
+      font-size: .82rem; font-weight: 700; cursor: pointer; letter-spacing: .04em;
+      clip-path: polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+      transition: opacity .2s;
+    }
+    .lock-btn:hover { opacity: .85; }
+    .lock-error { color: #ff4ecd; font-family: var(--mono); font-size: .72rem; margin-top: .5rem; display: none; }
+    .lock-note { margin-top: 1.25rem; font-family: var(--mono); font-size: .68rem; color: var(--muted); line-height: 1.6; }
+
+    /* BG GRID */
+    .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 70% 40% at 15% 15%, rgba(198,241,53,0.04) 0%, transparent 60%),
+        linear-gradient(rgba(198,241,53,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(198,241,53,0.02) 1px, transparent 1px);
+      background-size: auto, 56px 56px, 56px 56px;
+    }
+
+    /* MAIN LAYOUT */
+    #main { display: none; min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem; border-bottom: 1px solid var(--border);
+      background: rgba(6,8,16,0.9); backdrop-filter: blur(12px);
+    }
+    .nav-logo { font-family: var(--mono); font-size: .9rem; color: var(--lime); }
+    .nav-logo em { color: var(--muted); font-style: normal; }
+    .nav-badge {
+      font-family: var(--mono); font-size: .65rem; letter-spacing: .1em;
+      color: var(--lime); border: 1px solid var(--lime-border);
+      padding: .25rem .65rem; background: var(--lime-dim);
+    }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-progress { font-family: var(--mono); font-size: .7rem; color: var(--muted); }
+    .logout-btn {
+      font-family: var(--mono); font-size: .68rem; color: var(--muted);
+      background: none; border: 1px solid var(--border); padding: .3rem .7rem;
+      cursor: pointer; transition: color .2s, border-color .2s;
+    }
+    .logout-btn:hover { color: var(--lime); border-color: var(--lime-border); }
+
+    /* SIDEBAR + CONTENT */
+    .app-layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; padding-top: 57px; }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--bg2); border-right: 1px solid var(--border);
+      padding: 2rem 0; position: fixed; top: 57px; left: 0; bottom: 0;
+      width: 280px; overflow-y: auto; z-index: 50;
+    }
+    .sidebar-section { padding: 0 1.25rem; margin-bottom: 2rem; }
+    .sidebar-label {
+      font-family: var(--mono); font-size: .62rem; letter-spacing: .12em;
+      color: var(--muted); margin-bottom: .75rem; display: block;
+    }
+    .sidebar-label::before { content: '// '; }
+    .lesson-link {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .65rem .85rem; margin-bottom: .25rem;
+      border: 1px solid transparent; text-decoration: none;
+      cursor: pointer; transition: all .2s; border-radius: 2px;
+    }
+    .lesson-link:hover { background: var(--surface); border-color: var(--border); }
+    .lesson-link.active { background: var(--lime-dim); border-color: var(--lime-border); }
+    .lesson-num {
+      font-family: var(--mono); font-size: .65rem; color: var(--muted);
+      width: 22px; flex-shrink: 0;
+    }
+    .lesson-link.active .lesson-num { color: var(--lime); }
+    .lesson-title { font-size: .82rem; font-weight: 500; color: var(--muted2); line-height: 1.3; }
+    .lesson-link.active .lesson-title { color: var(--text); }
+    .lesson-check {
+      margin-left: auto; width: 16px; height: 16px;
+      border: 1px solid var(--border); border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .6rem; transition: all .2s;
+    }
+    .lesson-link.done .lesson-check { background: var(--lime); border-color: var(--lime); color: var(--bg); }
+
+    .progress-bar-wrap { padding: 0 1.25rem; margin-bottom: 1.5rem; }
+    .progress-label { font-family: var(--mono); font-size: .65rem; color: var(--muted); margin-bottom: .4rem; display: flex; justify-content: space-between; }
+    .progress-track { height: 3px; background: var(--border2); }
+    .progress-fill { height: 100%; background: var(--lime); transition: width .4s ease; width: 0%; }
+
+    .sidebar-download {
+      margin: 0 1.25rem;
+      display: flex; align-items: center; gap: .6rem;
+      padding: .75rem 1rem; border: 1px solid var(--border2);
+      background: var(--surface); text-decoration: none;
+      font-family: var(--mono); font-size: .72rem; color: var(--lime);
+      transition: border-color .2s;
+    }
+    .sidebar-download:hover { border-color: var(--lime-border); }
+
+    /* CONTENT AREA */
+    .content { margin-left: 280px; padding: 3rem 3.5rem; position: relative; z-index: 1; }
+
+    /* LESSON PAGES */
+    .lesson-page { display: none; max-width: 820px; }
+    .lesson-page.active { display: block; }
+
+    .lesson-header { margin-bottom: 3rem; }
+    .lesson-eyebrow {
+      font-family: var(--mono); font-size: .7rem; letter-spacing: .12em;
+      color: var(--lime); margin-bottom: .75rem; display: block;
+    }
+    .lesson-eyebrow::before { content: '// '; color: var(--muted); }
+    .lesson-page h1 { font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 700; letter-spacing: -1px; margin-bottom: .75rem; line-height: 1.1; }
+    .lesson-desc { color: var(--muted2); font-size: 1rem; line-height: 1.75; max-width: 600px; }
+
+    /* CONTENT BLOCKS */
+    .content-block { margin-bottom: 2.5rem; }
+    .block-label {
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+      color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+    }
+    .block-label::before { content: ''; display: block; width: 20px; height: 1px; background: var(--border2); }
+
+    .prose { color: var(--muted2); line-height: 1.85; font-size: .95rem; }
+    .prose p { margin-bottom: 1rem; }
+    .prose strong { color: var(--text); font-weight: 600; }
+    .prose em { color: var(--lime); font-style: normal; }
+
+    /* CALLOUT BOXES */
+    .callout {
+      border-left: 3px solid var(--lime); background: var(--lime-dim);
+      padding: 1.25rem 1.5rem; margin: 1.5rem 0;
+      border-top-right-radius: 2px; border-bottom-right-radius: 2px;
+    }
+    .callout-label { font-family: var(--mono); font-size: .68rem; color: var(--lime); letter-spacing: .08em; margin-bottom: .5rem; }
+    .callout p { color: var(--muted2); font-size: .88rem; line-height: 1.75; margin: 0; }
+
+    .callout.blue { border-left-color: var(--blue); background: rgba(77,124,254,0.08); }
+    .callout.blue .callout-label { color: var(--blue); }
+    .callout.pink { border-left-color: var(--pink); background: rgba(255,78,205,0.07); }
+    .callout.pink .callout-label { color: var(--pink); }
+
+    /* ACTIVITY CARDS */
+    .activity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1px; background: var(--border); margin: 1.5rem 0; }
+    .activity-card { background: var(--surface); padding: 1.5rem; transition: background .2s; }
+    .activity-card:hover { background: var(--surface2); }
+    .activity-step { font-family: var(--mono); font-size: .65rem; color: var(--lime); letter-spacing: .1em; margin-bottom: .75rem; }
+    .activity-card h4 { font-size: .92rem; font-weight: 600; margin-bottom: .4rem; }
+    .activity-card p { color: var(--muted2); font-size: .82rem; line-height: 1.65; }
+    .activity-time { font-family: var(--mono); font-size: .65rem; color: var(--muted); margin-top: .75rem; }
+
+    /* REFLECTION BOX */
+    .reflect-box { background: var(--surface); border: 1px solid var(--border2); padding: 1.5rem; margin: 1.5rem 0; }
+    .reflect-box h4 { font-size: .92rem; font-weight: 600; margin-bottom: .75rem; }
+    .reflect-q { display: flex; gap: .75rem; margin-bottom: .75rem; align-items: flex-start; }
+    .reflect-q::before { content: '?'; font-family: var(--mono); font-size: .72rem; color: var(--lime); border: 1px solid var(--lime-border); width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .reflect-q p { color: var(--muted2); font-size: .88rem; line-height: 1.6; }
+
+    /* CODE BLOCK */
+    .code-block {
+      background: var(--bg); border: 1px solid var(--border2);
+      padding: 1.25rem 1.5rem; margin: 1.5rem 0; overflow-x: auto;
+    }
+    .code-block pre { font-family: var(--mono); font-size: .8rem; color: var(--muted2); line-height: 1.7; }
+    .code-block .kw { color: var(--pink); }
+    .code-block .str { color: var(--lime); }
+    .code-block .cm { color: var(--muted); }
+
+    /* PATTERN TABLE */
+    .pattern-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+    .pattern-table th { font-family: var(--mono); font-size: .7rem; letter-spacing: .08em; color: var(--muted); padding: .75rem 1rem; border-bottom: 1px solid var(--border2); text-align: left; }
+    .pattern-table td { padding: .85rem 1rem; border-bottom: 1px solid var(--border); color: var(--muted2); font-size: .87rem; line-height: 1.6; }
+    .pattern-table td:first-child { color: var(--text); font-weight: 500; }
+    .pattern-table tr:hover td { background: var(--surface); }
+
+    /* LESSON NAV */
+    .lesson-nav { display: flex; gap: 1rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .mark-done-btn {
+      font-family: var(--mono); font-size: .78rem; font-weight: 700;
+      color: var(--bg); background: var(--lime); border: none;
+      padding: .75rem 1.75rem; cursor: pointer; letter-spacing: .04em;
+      clip-path: polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));
+      transition: opacity .2s;
+    }
+    .mark-done-btn:hover { opacity: .85; }
+    .next-btn {
+      font-family: var(--mono); font-size: .78rem; color: var(--text);
+      background: transparent; border: 1px solid var(--border2);
+      padding: .75rem 1.75rem; cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .next-btn:hover { border-color: var(--lime-border); color: var(--lime); }
+
+    /* WELCOME / DASHBOARD */
+    .welcome-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1px; background: var(--border); margin: 2rem 0; }
+    .welcome-card { background: var(--surface); padding: 2rem; transition: background .2s; }
+    .welcome-card:hover { background: var(--surface2); }
+    .welcome-card-icon { font-size: 1.5rem; margin-bottom: .75rem; }
+    .welcome-card h3 { font-size: .95rem; font-weight: 600; margin-bottom: .4rem; }
+    .welcome-card p { color: var(--muted2); font-size: .82rem; line-height: 1.65; }
+
+    /* MOBILE */
+    .mobile-menu-btn { display: none; background: none; border: 1px solid var(--border); color: var(--text); padding: .35rem .65rem; cursor: pointer; font-family: var(--mono); font-size: .75rem; }
+
+    @media(max-width: 768px) {
+      .app-layout { grid-template-columns: 1fr; }
+      .sidebar { width: 100%; position: relative; top: 0; transform: none; display: none; border-right: none; border-bottom: 1px solid var(--border); }
+      .sidebar.open { display: block; }
+      .content { margin-left: 0; padding: 1.5rem; }
+      .mobile-menu-btn { display: block; }
+      nav { padding: 1rem 1.25rem; }
+      .activity-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-layer"></div>
+
+<!-- LOCK SCREEN -->
+<div id="lock">
+  <div class="lock-box">
+    <div class="lock-logo">stack<em>_</em>up<em>();</em></div>
+    <h2>Student Access</h2>
+    <p>This course is for enrolled StackUp students. Enter your access code to continue.</p>
+    <input type="password" id="pass-input" placeholder="Enter access code" autocomplete="off"/>
+    <button class="lock-btn" onclick="tryUnlock()">UNLOCK COURSE →</button>
+    <div class="lock-error" id="lock-error">Incorrect code. Check with your tutor.</div>
+    <div class="lock-note">
+      Don't have a code? The Builder's Mindset module is free.<br>
+      Email hello@stackup.build to get yours.
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main">
+  <nav>
+    <div class="nav-logo">stack<em>_</em>up<em>();</em></div>
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">MENU</button>
+    <div class="nav-right">
+      <span class="nav-badge">BUILDER'S MINDSET — FREE</span>
+      <span class="nav-progress" id="progress-text">0 / 6 complete</span>
+      <button class="logout-btn" onclick="logout()">LOGOUT</button>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">module</span>
+        <div class="progress-bar-wrap" style="padding:0;margin-bottom:1.25rem">
+          <div class="progress-label">
+            <span>progress</span><span id="progress-pct">0%</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">lessons</span>
+        <div class="lesson-link active" onclick="showLesson('welcome')" id="link-welcome">
+          <span class="lesson-num">00</span>
+          <span class="lesson-title">Welcome & How This Works</span>
+          <span class="lesson-check">✓</span>
+        </div>
+        <div class="lesson-link" onclick="showLesson('l1')" id="link-l1">
+          <span class="lesson-num">01</span>
+          <span class="lesson-title">What is a Builder's Mindset?</span>
+          <span class="lesson-check">✓</span>
+        </div>
+        <div class="lesson-link" onclick="showLesson('l2')" id="link-l2">
+          <span class="lesson-num">02</span>
+          <span class="lesson-title">Patterns Everywhere — Maths as a Superpower</span>
+          <span class="lesson-check">✓</span>
+        </div>
+        <div class="lesson-link" onclick="showLesson('l3')" id="link-l3">
+          <span class="lesson-num">03</span>
+          <span class="lesson-title">Design Thinking Meets Code</span>
+          <span class="lesson-check">✓</span>
+        </div>
+        <div class="lesson-link" onclick="showLesson('l4')" id="link-l4">
+          <span class="lesson-num">04</span>
+          <span class="lesson-title">Breaking Problems Into Pieces</span>
+          <span class="lesson-check">✓</span>
+        </div>
+        <div class="lesson-link" onclick="showLesson('l5')" id="link-l5">
+          <span class="lesson-num">05</span>
+          <span class="lesson-title">Your First AI Conversation</span>
+          <span class="lesson-check">✓</span>
+        </div>
+        <div class="lesson-link" onclick="showLesson('l6')" id="link-l6">
+          <span class="lesson-num">06</span>
+          <span class="lesson-title">The Freelance Mindset — Building for Others</span>
+          <span class="lesson-check">✓</span>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">downloads</span>
+        <a class="sidebar-download" href="../pdfs/builders-mindset-workbook.pdf" download>
+          ↓ Student Workbook PDF
+        </a>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+      <!-- WELCOME -->
+      <div class="lesson-page active" id="page-welcome">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">module 00</span>
+          <h1>Welcome to StackUp.</h1>
+          <p class="lesson-desc">You're about to learn how to think like a builder. Not just how to code — how to look at any problem and know you can solve it. That's what this module is about.</p>
+        </div>
+
+        <div class="welcome-grid">
+          <div class="welcome-card">
+            <div class="welcome-card-icon">🧠</div>
+            <h3>6 lessons</h3>
+            <p>Each one short, practical, and followed by a real activity. No fluff.</p>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-icon">🕐</div>
+            <h3>~3 hours total</h3>
+            <p>Work at your own pace. Most students do one lesson per session.</p>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-icon">🛠</div>
+            <h3>Tools used</h3>
+            <p>Claude AI (free), a browser, a notebook. That's it. Zero cost.</p>
+          </div>
+          <div class="welcome-card">
+            <div class="welcome-card-icon">🏁</div>
+            <h3>What you'll build</h3>
+            <p>Your first AI conversation + a problem brief — the foundation for everything in Phase 1.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">HOW TO USE THIS COURSE</div>
+          <p>Read each lesson, do the activity, then hit "Mark Complete" to track your progress. Download the Student Workbook — you'll fill it in as you go. It's yours to keep.</p>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('welcome')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="showLesson('l1')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 1 -->
+      <div class="lesson-page" id="page-l1">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">lesson 01</span>
+          <h1>What is a Builder's Mindset?</h1>
+          <p class="lesson-desc">Before you write a single line of code, you need to understand how builders think. It's a specific way of looking at the world — and you can learn it.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">THE IDEA</div>
+          <div class="prose">
+            <p>A builder doesn't see a broken website and think "that's someone else's problem." They think <em>"I wonder how I'd fix that."</em> A builder doesn't see a tedious task and just accept it — they think <em>"I could probably automate this."</em></p>
+            <p>This isn't a skill you're born with. It's a habit of mind. And like any habit, you build it through practice — by repeatedly asking better questions about the world around you.</p>
+            <p>The best developers, designers, and freelancers in the world share one thing: they treat <strong>every problem as a puzzle to be broken apart</strong>, not a wall to be stopped by.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">THE THREE QUESTIONS EVERY BUILDER ASKS</div>
+          <p><strong>1. What is actually happening here?</strong> (Understand the real problem, not just the symptom)<br/>
+          <strong>2. What would need to be true for this to work?</strong> (Think backwards from the solution)<br/>
+          <strong>3. What's the smallest version of this I could test?</strong> (Start tiny, iterate fast)</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">THE DESIGN PROCESS CONNECTION</div>
+          <div class="prose">
+            <p>If you've done design — or art — you already know this process. You just didn't call it programming. In design you: <em>research → define → ideate → prototype → test.</em></p>
+            <p>In software, the exact same process applies. Every app, every website, every AI tool was built by someone who went through exactly those steps. The tools are different. The thinking is identical.</p>
+            <p>This course uses the design process as a framework throughout — because it's the best mental model for building anything.</p>
+          </div>
+        </div>
+
+        <table class="pattern-table">
+          <thead>
+            <tr><th>Design Process</th><th>Software/Freelance Process</th><th>What it looks like</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Research / Empathise</td><td>Understand the client brief</td><td>Ask: who uses this and why?</td></tr>
+            <tr><td>Define the problem</td><td>Write a project spec</td><td>One clear sentence of what you're building</td></tr>
+            <tr><td>Ideate</td><td>Choose tools + approach</td><td>Brainstorm 3 ways to solve it</td></tr>
+            <tr><td>Prototype</td><td>Build an MVP with AI</td><td>The scrappy first version</td></tr>
+            <tr><td>Test + iterate</td><td>Deploy, get feedback, improve</td><td>Ship it, learn, fix it</td></tr>
+          </tbody>
+        </table>
+
+        <div class="content-block">
+          <div class="block-label">ACTIVITY — 20 MINUTES</div>
+          <div class="activity-grid">
+            <div class="activity-card">
+              <div class="activity-step">STEP 01</div>
+              <h4>Pick a frustration</h4>
+              <p>Think of something you do repeatedly that feels annoying or slow — a task, a process, anything. Write it down in your workbook.</p>
+              <div class="activity-time">// 5 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">STEP 02</div>
+              <h4>Ask the three questions</h4>
+              <p>Apply the three builder questions to your frustration. Write your answers. Don't worry if they're rough — that's fine.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">STEP 03</div>
+              <h4>Name the smallest solution</h4>
+              <p>Describe the tiniest, simplest version of a solution in one sentence. Not the whole thing — just the core of it.</p>
+              <div class="activity-time">// 5 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reflect-box">
+          <h4>Before you move on — think about this</h4>
+          <div class="reflect-q"><p>What's the difference between "I can't do this" and "I don't know how to do this yet"?</p></div>
+          <div class="reflect-q"><p>Can you think of a time you solved a problem creatively — not with code, but with thinking? What made it work?</p></div>
+          <div class="reflect-q"><p>If you had a client who needed a simple website, what's the first question you'd ask them?</p></div>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('l1')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="showLesson('l2')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 2 -->
+      <div class="lesson-page" id="page-l2">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">lesson 02</span>
+          <h1>Patterns Everywhere</h1>
+          <p class="lesson-desc">Maths isn't about numbers. It's about recognising patterns. And pattern recognition is one of the most powerful skills a developer — and a freelancer — can have.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">THE REAL POINT OF MATHS</div>
+          <div class="prose">
+            <p>Most people think maths is about calculating answers. It's not. Maths is about <em>seeing structure in chaos.</em> When you spot that something repeats, scales, or follows a rule — that's mathematical thinking. And it shows up everywhere in software.</p>
+            <p>A loop in code is a pattern. A grid layout on a website is a pattern. A pricing model is a pattern. The way a virus spreads — a pattern. When you learn to spot the underlying structure of something, you can predict it, automate it, and build with it.</p>
+            <p>This is also how AI works. Language models like Claude don't "understand" language — they detect and reproduce patterns at massive scale. Knowing this makes you a <strong>much better prompt writer</strong>.</p>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">PATTERN RECOGNITION IN REAL PROJECTS</div>
+          <p>When a client says "I want users to be able to log in" — that's a pattern you've seen before (authentication). When they say "I want it to update in real time" — that's another pattern (websockets or polling). Experienced developers recognise patterns faster, which is why they build faster.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">THE ART CONNECTION</div>
+          <div class="prose">
+            <p>Art and maths have more in common than people think. A grid in design is a mathematical system. Colour theory is based on wavelength ratios. A well-designed logo uses geometric proportions. Visual rhythm in a layout is pattern. <em>If you studied design or art, you've been doing mathematical thinking all along.</em></p>
+            <p>This is your advantage. You can see how things should be structured — visually and logically. That's exactly what good UI, good code architecture, and good client communication all require.</p>
+          </div>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">ACTIVITY — 25 MINUTES</div>
+          <div class="activity-grid">
+            <div class="activity-card">
+              <div class="activity-step">PART A — VISUAL</div>
+              <h4>Pattern hunt</h4>
+              <p>Open any website (Instagram, a news site, YouTube). Write down 5 patterns you notice — layout grids, repeated components, consistent spacing. Sketch them.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">PART B — LOGICAL</div>
+              <h4>Find the rule</h4>
+              <p>Look at this sequence: 1, 1, 2, 3, 5, 8, 13, 21... What's the rule? Now: how many times does this pattern appear in nature, art, or code? Research it.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">PART C — CONNECT</div>
+              <h4>Write the link</h4>
+              <p>In your workbook, write one sentence connecting what you found in Part A to what you found in Part B. How does visual pattern relate to logical pattern?</p>
+              <div class="activity-time">// 5 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <pre><span class="cm"># Patterns in code — this is a Fibonacci sequence</span>
+<span class="cm"># Same rule you just found in nature</span>
+
+<span class="kw">def</span> fibonacci(n):
+    <span class="kw">if</span> n <= <span class="str">1</span>:
+        <span class="kw">return</span> n
+    <span class="kw">return</span> fibonacci(n-<span class="str">1</span>) + fibonacci(n-<span class="str">2</span>)
+
+<span class="cm"># Each answer depends on the two before it</span>
+<span class="cm"># Sound familiar? It's the same rule you found.</span></pre>
+        </div>
+
+        <div class="reflect-box">
+          <h4>Reflect before moving on</h4>
+          <div class="reflect-q"><p>Where else do you see patterns in your everyday life that you hadn't noticed before?</p></div>
+          <div class="reflect-q"><p>If a client asks you to build something, what "pattern" might already exist that you could adapt?</p></div>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('l2')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="showLesson('l3')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 3 -->
+      <div class="lesson-page" id="page-l3">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">lesson 03</span>
+          <h1>Design Thinking Meets Code</h1>
+          <p class="lesson-desc">The design process you learned in school is the same process professional developers use. Here's how to apply it to every project you'll ever build.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">YOU ALREADY KNOW THIS</div>
+          <div class="prose">
+            <p>If you've done any design subject, you've been trained to solve problems in a structured way. You research, define, ideate, prototype, test. You iterate. You get feedback. You revise. <em>This is exactly how good software is built.</em></p>
+            <p>Most beginner developers skip straight to building. They start typing code before they've understood the problem. This is why so many projects fail — not because the code was bad, but because the thinking that came before it was skipped.</p>
+            <p>As a freelancer, <strong>the person who asks the best questions before starting wins</strong>. Clients don't always know what they want — your job is to find out.</p>
+          </div>
+        </div>
+
+        <div class="callout pink">
+          <div class="callout-label">THE FREELANCER'S VERSION OF THE DESIGN PROCESS</div>
+          <p>
+            <strong>1. Discovery call</strong> — ask, listen, understand what the client actually needs<br/>
+            <strong>2. Project brief</strong> — write it back to them in your own words<br/>
+            <strong>3. Approach options</strong> — offer 2–3 ways you could solve it<br/>
+            <strong>4. Build the MVP</strong> — the smallest version that proves the concept<br/>
+            <strong>5. Review + iterate</strong> — show it, get feedback, refine
+          </p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">ACTIVITY — 30 MINUTES</div>
+          <div class="activity-grid">
+            <div class="activity-card">
+              <div class="activity-step">SCENARIO</div>
+              <h4>You have a client</h4>
+              <p>A local bakery in Brisbane wants a website. They want to show their menu, take orders, and tell their story. That's all they've said.</p>
+              <div class="activity-time">// read carefully</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">YOUR TASK</div>
+              <h4>Write a discovery brief</h4>
+              <p>Write 5 questions you'd ask before starting. Then write a one-paragraph project brief based on what you know so far. Use the design process steps.</p>
+              <div class="activity-time">// 20 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">STRETCH</div>
+              <h4>Name your approach</h4>
+              <p>What tool would you use to build this? (Hint: think about what you'll learn in Phase 1.) What would the MVP look like — the tiniest version that still helps them?</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reflect-box">
+          <h4>Think about this</h4>
+          <div class="reflect-q"><p>What's the difference between what a client asks for and what they actually need?</p></div>
+          <div class="reflect-q"><p>How would writing a brief first save you time compared to just starting to build?</p></div>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('l3')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="showLesson('l4')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 4 -->
+      <div class="lesson-page" id="page-l4">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">lesson 04</span>
+          <h1>Breaking Problems Into Pieces</h1>
+          <p class="lesson-desc">Decomposition — breaking a big problem into small ones — is the single most important skill in software development. Here's how to do it.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">THE SKILL BEHIND THE SKILL</div>
+          <div class="prose">
+            <p>When beginners see a big project, they freeze. "I don't even know where to start." When experienced developers see the same project, they immediately start breaking it apart. <em>Not because they know more code — because they know how to decompose.</em></p>
+            <p>Decomposition is simple: take the big thing, and keep asking "what are the parts of this?" until each part is small enough to actually do. Then start with the smallest piece. Build it. It works. Now you have momentum.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">EXAMPLE: "I WANT TO BUILD A WEBSITE"</div>
+          <p>
+            Website → Pages → Header, Body, Footer<br/>
+            Header → Logo, Navigation links, Button<br/>
+            Navigation → List of links → Each link → URL + text<br/><br/>
+            <strong>Now you have something you can actually start: write one navigation link.</strong> That's it. One link. Then another. Then the list. Then the header. Then the page. That's how websites get built.
+          </p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">THIS IS ALSO HOW YOU PROMPT AI</div>
+          <div class="prose">
+            <p>When you write a prompt to Claude or ChatGPT asking it to "build me a website", you'll get something generic. But when you decompose first, your prompt becomes specific: <em>"Create a navigation bar with these 4 links, using this colour, with a hamburger menu on mobile."</em> That gets you something useful.</p>
+            <p><strong>Decomposition makes your AI 10x more powerful.</strong> The better you can break down what you want, the better your AI output will be. This is a skill most people never develop — which means you'll be ahead of nearly everyone.</p>
+          </div>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">ACTIVITY — 25 MINUTES</div>
+          <div class="activity-grid">
+            <div class="activity-card">
+              <div class="activity-step">STEP 01</div>
+              <h4>Decompose a real app</h4>
+              <p>Pick an app you use daily (Spotify, Instagram, Google Maps). In your workbook, draw a tree diagram breaking it into parts, sub-parts, and smallest pieces. Go at least 3 levels deep.</p>
+              <div class="activity-time">// 15 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">STEP 02</div>
+              <h4>Write a micro-prompt</h4>
+              <p>Take the smallest piece from your diagram. Write a specific, detailed AI prompt that could help you build just that piece. No vague language allowed — be exact.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reflect-box">
+          <h4>Reflect</h4>
+          <div class="reflect-q"><p>When was the last time you felt overwhelmed by something? Could you have broken it down further?</p></div>
+          <div class="reflect-q"><p>Why does a specific prompt get better AI results than a vague one?</p></div>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('l4')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="showLesson('l5')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 5 -->
+      <div class="lesson-page" id="page-l5">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">lesson 05</span>
+          <h1>Your First AI Conversation</h1>
+          <p class="lesson-desc">Time to use Claude for real. You'll learn how to have a productive conversation with AI — not just ask it questions, but guide it like a collaborator.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">AI IS A COLLABORATOR, NOT A SEARCH ENGINE</div>
+          <div class="prose">
+            <p>Most people use AI like Google — type a question, read the answer, close the tab. That's wasting most of its value. AI is at its most powerful when you treat it like a <em>very capable colleague who needs context and direction.</em></p>
+            <p>Good AI prompting has a structure: <strong>context → task → constraints → format.</strong> You tell it who you are and what you're doing, what you want it to do, what rules to follow, and how you want the answer presented. That combination unlocks dramatically better results.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">THE PROMPT FORMULA</div>
+          <p>
+            <strong>Context:</strong> "I'm a high school student building my first website..."<br/>
+            <strong>Task:</strong> "...create a simple navigation bar in HTML..."<br/>
+            <strong>Constraints:</strong> "...with no external libraries, using only plain CSS..."<br/>
+            <strong>Format:</strong> "...and explain each line in plain English."
+          </p>
+        </div>
+
+        <div class="code-block">
+          <pre><span class="cm">// WEAK PROMPT (gets generic results)</span>
+<span class="str">"Make me a website"</span>
+
+<span class="cm">// STRONG PROMPT (gets useful results)</span>
+<span class="str">"I'm learning HTML for the first time.
+Create a navigation bar with 4 links:
+Home, About, Projects, Contact.
+Use plain HTML and CSS only — no frameworks.
+Make it responsive on mobile.
+Explain what each CSS property does in a comment."</span></pre>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">ACTIVITY — GO DO THIS NOW</div>
+          <div class="activity-grid">
+            <div class="activity-card">
+              <div class="activity-step">TASK 01</div>
+              <h4>Open Claude (free)</h4>
+              <p>Go to claude.ai — create a free account if you don't have one. You don't need to pay for anything.</p>
+              <div class="activity-time">// claude.ai</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">TASK 02</div>
+              <h4>Use the prompt formula</h4>
+              <p>Using the formula above, write a prompt that asks Claude to help you solve the bakery problem from Lesson 3. Tell it you're a student. Give it context. Be specific.</p>
+              <div class="activity-time">// 15 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">TASK 03</div>
+              <h4>Have a back-and-forth</h4>
+              <p>Don't stop at the first answer. Reply to Claude: "Can you make it simpler?" or "What if the client only has $500?" See how the conversation evolves. Write what you noticed.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reflect-box">
+          <h4>Reflect</h4>
+          <div class="reflect-q"><p>What surprised you about the AI's response when you gave it more context?</p></div>
+          <div class="reflect-q"><p>How is prompting AI similar to briefing a designer or a client?</p></div>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('l5')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="showLesson('l6')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 6 -->
+      <div class="lesson-page" id="page-l6">
+        <div class="lesson-header">
+          <span class="lesson-eyebrow">lesson 06</span>
+          <h1>The Freelance Mindset</h1>
+          <p class="lesson-desc">Everything you build in StackUp is pointing toward one goal: the ability to earn income with your skills. Here's what that actually looks like — and how to start before you even finish school.</p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">WHAT FREELANCING ACTUALLY IS</div>
+          <div class="prose">
+            <p>Freelancing means solving real problems for real people and getting paid for it. Not having a boss. Not waiting until you're 22 and have a degree. <em>You can start taking small clients the moment you have a useful skill.</em></p>
+            <p>Australian businesses — especially small ones — need websites, automation, and digital tools. Most of them don't have the budget for a big agency. They need someone who is affordable, communicates well, and delivers. That's you.</p>
+            <p>Your first freelance project doesn't have to be impressive. It just has to <strong>solve a real problem for a real person</strong>. That's the whole game.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-label">THE FREELANCER'S PATH (REALISTIC VERSION)</div>
+          <p>
+            <strong>Month 1–3:</strong> Build skills + 2 practice projects (no client yet)<br/>
+            <strong>Month 3–5:</strong> First project for someone you know — cheap or free to get feedback<br/>
+            <strong>Month 5–8:</strong> First paid client — small scope, simple delivery<br/>
+            <strong>Month 8+:</strong> Referrals, case studies, portfolio, raise your rates
+          </p>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">SHADOWING A FREELANCER</div>
+          <div class="prose">
+            <p>In StackUp, top students get connected to working freelancers — not big companies, but real independent developers who do exactly what you'll eventually do. You sit alongside them (virtually), see how they find clients, how they scope work, how they handle problems, and how they get paid.</p>
+            <p>This is worth more than any textbook. <em>Seeing someone do something makes it real in a way that reading about it never does.</em></p>
+          </div>
+        </div>
+
+        <div class="content-block">
+          <div class="block-label">FINAL MODULE ACTIVITY — 30 MINUTES</div>
+          <div class="activity-grid">
+            <div class="activity-card">
+              <div class="activity-step">PART 01</div>
+              <h4>Write your freelance pitch</h4>
+              <p>In 3 sentences: who you are, what you can help with, and who your ideal client is. Pretend you're writing it for your future self — the version of you who's finished Phase 1.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">PART 02</div>
+              <h4>Identify your first potential client</h4>
+              <p>Name one real person or small business you know who could use a simple website or digital tool. What would you build for them? How much might you charge?</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+            <div class="activity-card">
+              <div class="activity-step">PART 03</div>
+              <h4>Workbook: module complete</h4>
+              <p>Fill in the final page of your Student Workbook — your reflection on what shifted in how you think. This is your baseline. You'll look back on it when you're earning.</p>
+              <div class="activity-time">// 10 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-label">WHAT'S NEXT</div>
+          <p>You've finished the Builder's Mindset module. Phase 1 — Foundations — is where the building begins. You'll write your first real code, build your first real project, and deploy it to a live URL. <strong>Book your first Phase 1 session at stackup.build.</strong></p>
+        </div>
+
+        <div class="lesson-nav">
+          <button class="mark-done-btn" onclick="markDone('l6')">MARK MODULE COMPLETE →</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // PASSWORDS — change these before deploying
+  // Using a simple hash approach so passwords aren't plaintext
+  const VALID_CODES = ['STACKUP2026', 'BUILDERS01', 'AUSFREELANCE'];
+
+  function tryUnlock() {
+    const val = document.getElementById('pass-input').value.trim().toUpperCase();
+    if (VALID_CODES.includes(val)) {
+      document.getElementById('lock').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      localStorage.setItem('su_auth', btoa(val));
+      loadProgress();
+    } else {
+      document.getElementById('lock-error').style.display = 'block';
+      document.getElementById('pass-input').value = '';
+    }
+  }
+  document.getElementById('pass-input').addEventListener('keydown', e => { if(e.key==='Enter') tryUnlock(); });
+
+  function logout() {
+    localStorage.removeItem('su_auth');
+    location.reload();
+  }
+
+  // Auto-login if previously authenticated
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('su_auth');
+    if (saved) {
+      try {
+        const decoded = atob(saved).toUpperCase();
+        if (VALID_CODES.includes(decoded)) {
+          document.getElementById('lock').style.display = 'none';
+          document.getElementById('main').style.display = 'block';
+          loadProgress();
+        }
+      } catch(e) { localStorage.removeItem('su_auth'); }
+    }
+  });
+
+  // LESSON NAVIGATION
+  const lessons = ['welcome','l1','l2','l3','l4','l5','l6'];
+  let completed = JSON.parse(localStorage.getItem('su_done') || '[]');
+
+  function showLesson(id) {
+    document.querySelectorAll('.lesson-page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.lesson-link').forEach(l => l.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    document.getElementById('link-' + id).classList.add('active');
+    window.scrollTo(0, 0);
+    if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+  }
+
+  function markDone(id) {
+    if (!completed.includes(id)) {
+      completed.push(id);
+      localStorage.setItem('su_done', JSON.stringify(completed));
+    }
+    document.getElementById('link-' + id).classList.add('done');
+    updateProgress();
+    // Auto advance
+    const idx = lessons.indexOf(id);
+    if (idx < lessons.length - 1) showLesson(lessons[idx + 1]);
+  }
+
+  function updateProgress() {
+    const total = lessons.length;
+    const done = completed.length;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('progress-text').textContent = done + ' / ' + total + ' complete';
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-fill').style.width = pct + '%';
+    completed.forEach(id => {
+      const link = document.getElementById('link-' + id);
+      if (link) link.classList.add('done');
+    });
+  }
+
+  function loadProgress() {
+    completed = JSON.parse(localStorage.getItem('su_done') || '[]');
+    updateProgress();
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+</script>
+</body>
+</html>
