@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StackUp — Phase 1: Foundations</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#060810;--bg2:#0c0f1a;--surface:#0f1220;--surface2:#151929;
+      --border:#1a2035;--border2:#222840;
+      --lime:#c6f135;--lime-dim:rgba(198,241,53,0.09);--lime-border:rgba(198,241,53,0.22);
+      --blue:#4d7cfe;--blue-dim:rgba(77,124,254,0.09);
+      --pink:#ff4ecd;--amber:#fbbf24;
+      --text:#e2e8f8;--muted:#5a6585;--muted2:#8895b3;
+      --mono:'Fira Code',monospace;--sans:'Space Grotesk',sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden;}
+
+    /* LOCK */
+    #lock{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;}
+    .lock-box{background:var(--surface);border:1px solid var(--border2);padding:2.5rem;width:100%;max-width:380px;margin:1rem;}
+    .lock-logo{font-family:var(--mono);font-size:.95rem;color:var(--lime);margin-bottom:1.75rem;}
+    .lock-logo em{color:var(--muted);font-style:normal;}
+    .lock-box h2{font-size:1.3rem;font-weight:700;margin-bottom:.4rem;}
+    .lock-box p{color:var(--muted2);font-size:.85rem;margin-bottom:1.5rem;line-height:1.6;}
+    .lock-box input{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:.8rem 1rem;font-family:var(--mono);font-size:.85rem;outline:none;margin-bottom:.75rem;transition:border-color .2s;}
+    .lock-box input:focus{border-color:var(--lime);}
+    .lock-btn{width:100%;background:var(--lime);color:var(--bg);border:none;padding:.85rem;font-family:var(--mono);font-size:.82rem;font-weight:700;cursor:pointer;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:opacity .2s;}
+    .lock-btn:hover{opacity:.85;}
+    .lock-error{color:var(--pink);font-family:var(--mono);font-size:.72rem;margin-top:.5rem;display:none;}
+    .lock-note{margin-top:1.25rem;font-family:var(--mono);font-size:.68rem;color:var(--muted);line-height:1.6;}
+
+    .bg-layer{position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(ellipse 70% 40% at 20% 10%,rgba(198,241,53,0.04),transparent 60%),
+        linear-gradient(rgba(198,241,53,0.02) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(198,241,53,0.02) 1px,transparent 1px);
+      background-size:auto,56px 56px,56px 56px;}
+
+    #main{display:none;min-height:100vh;}
+
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);background:rgba(6,8,16,.92);backdrop-filter:blur(12px);}
+    .nav-logo{font-family:var(--mono);font-size:.9rem;color:var(--lime);}
+    .nav-logo em{color:var(--muted);font-style:normal;}
+    .nav-center{display:flex;align-items:center;gap:.75rem;}
+    .nav-phase{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;color:var(--lime);border:1px solid var(--lime-border);padding:.25rem .65rem;background:var(--lime-dim);}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-progress{font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+    .logout-btn{font-family:var(--mono);font-size:.68rem;color:var(--muted);background:none;border:1px solid var(--border);padding:.3rem .7rem;cursor:pointer;transition:color .2s,border-color .2s;}
+    .logout-btn:hover{color:var(--lime);border-color:var(--lime-border);}
+    .mob-menu{display:none;background:none;border:1px solid var(--border);color:var(--text);padding:.35rem .65rem;cursor:pointer;font-family:var(--mono);font-size:.75rem;}
+
+    .app-layout{display:grid;grid-template-columns:272px 1fr;min-height:100vh;padding-top:57px;}
+
+    /* SIDEBAR */
+    .sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:1.5rem 0;position:fixed;top:57px;left:0;bottom:0;width:272px;overflow-y:auto;z-index:50;}
+    .sb-section{padding:0 1.1rem;margin-bottom:1.75rem;}
+    .sb-label{font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;color:var(--muted);margin-bottom:.65rem;display:block;}
+    .sb-label::before{content:'// ';}
+    .prog-wrap{margin-bottom:1.25rem;}
+    .prog-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-bottom:.35rem;}
+    .prog-track{height:3px;background:var(--border2);}
+    .prog-fill{height:100%;background:var(--lime);transition:width .4s ease;width:0%;}
+
+    .ll{display:flex;align-items:center;gap:.65rem;padding:.6rem .8rem;margin-bottom:.2rem;border:1px solid transparent;cursor:pointer;transition:all .2s;border-radius:2px;}
+    .ll:hover{background:var(--surface);border-color:var(--border);}
+    .ll.active{background:var(--lime-dim);border-color:var(--lime-border);}
+    .ll-num{font-family:var(--mono);font-size:.62rem;color:var(--muted);width:20px;flex-shrink:0;}
+    .ll.active .ll-num{color:var(--lime);}
+    .ll-title{font-size:.8rem;font-weight:500;color:var(--muted2);line-height:1.3;flex:1;}
+    .ll.active .ll-title{color:var(--text);}
+    .ll-check{width:14px;height:14px;border:1px solid var(--border);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.55rem;}
+    .ll.done .ll-check{background:var(--lime);border-color:var(--lime);color:var(--bg);}
+
+    .sb-dl{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;margin:0 1.1rem;border:1px solid var(--border2);background:var(--surface);text-decoration:none;font-family:var(--mono);font-size:.7rem;color:var(--lime);transition:border-color .2s;margin-bottom:.5rem;}
+    .sb-dl:hover{border-color:var(--lime-border);}
+
+    /* CONTENT */
+    .content{margin-left:272px;padding:2.5rem 3rem;position:relative;z-index:1;max-width:1100px;}
+
+    /* LESSON PAGES */
+    .lp{display:none;max-width:800px;}
+    .lp.active{display:block;}
+
+    .lp-eyebrow{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;color:var(--lime);margin-bottom:.65rem;display:block;}
+    .lp-eyebrow::before{content:'// ';}
+    .lp h1{font-size:clamp(1.8rem,3vw,2.5rem);font-weight:700;letter-spacing:-1px;margin-bottom:.65rem;line-height:1.1;}
+    .lp-desc{color:var(--muted2);font-size:.98rem;line-height:1.75;max-width:580px;margin-bottom:2.5rem;}
+
+    /* CONTENT ATOMS */
+    .blk{margin-bottom:2.25rem;}
+    .blk-lbl{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;color:var(--muted);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem;}
+    .blk-lbl::before{content:'';display:block;width:18px;height:1px;background:var(--border2);}
+
+    .prose{color:var(--muted2);line-height:1.85;font-size:.93rem;}
+    .prose p{margin-bottom:.9rem;}
+    .prose strong{color:var(--text);font-weight:600;}
+    .prose em{color:var(--lime);font-style:normal;}
+    .prose a{color:var(--blue);text-decoration:none;}
+    .prose a:hover{text-decoration:underline;}
+
+    .callout{border-left:3px solid var(--lime);background:var(--lime-dim);padding:1.1rem 1.4rem;margin:1.4rem 0;}
+    .callout-lbl{font-family:var(--mono);font-size:.65rem;color:var(--lime);letter-spacing:.08em;margin-bottom:.45rem;}
+    .callout p,.callout li{color:var(--muted2);font-size:.87rem;line-height:1.75;}
+    .callout ul{padding-left:1.1rem;}
+    .callout.blue{border-left-color:var(--blue);background:var(--blue-dim);}
+    .callout.blue .callout-lbl{color:var(--blue);}
+    .callout.pink{border-left-color:var(--pink);background:rgba(255,78,205,.07);}
+    .callout.pink .callout-lbl{color:var(--pink);}
+    .callout.amber{border-left-color:var(--amber);background:rgba(251,191,36,.07);}
+    .callout.amber .callout-lbl{color:var(--amber);}
+
+    /* CODE */
+    .code-wrap{background:var(--bg);border:1px solid var(--border2);margin:1.4rem 0;overflow:hidden;}
+    .code-bar{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;border-bottom:1px solid var(--border);background:var(--surface);}
+    .code-bar span{font-family:var(--mono);font-size:.65rem;color:var(--muted);letter-spacing:.06em;}
+    .copy-btn{font-family:var(--mono);font-size:.62rem;color:var(--muted);background:none;border:1px solid var(--border);padding:.2rem .55rem;cursor:pointer;transition:color .2s,border-color .2s;}
+    .copy-btn:hover{color:var(--lime);border-color:var(--lime-border);}
+    .code-wrap pre{padding:1.25rem 1.4rem;font-family:var(--mono);font-size:.8rem;line-height:1.75;overflow-x:auto;color:var(--muted2);}
+    .kw{color:var(--pink);}
+    .fn{color:var(--blue);}
+    .str{color:var(--lime);}
+    .cm{color:var(--muted);}
+    .num{color:var(--amber);}
+    .tag{color:var(--blue);}
+    .attr{color:var(--lime);}
+    .val{color:var(--amber);}
+
+    /* ACTIVITY */
+    .act-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;background:var(--border);margin:1.4rem 0;}
+    .act-card{background:var(--surface);padding:1.4rem;transition:background .2s;}
+    .act-card:hover{background:var(--surface2);}
+    .act-step{font-family:var(--mono);font-size:.62rem;color:var(--lime);letter-spacing:.1em;margin-bottom:.65rem;}
+    .act-card h4{font-size:.9rem;font-weight:600;margin-bottom:.35rem;}
+    .act-card p{color:var(--muted2);font-size:.82rem;line-height:1.65;}
+    .act-time{font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-top:.65rem;}
+
+    /* STEP LIST */
+    .step-list{display:flex;flex-direction:column;gap:.5rem;margin:1rem 0;}
+    .step-item{display:flex;gap:.85rem;align-items:flex-start;padding:.85rem 1rem;background:var(--surface);border:1px solid var(--border);transition:border-color .2s;}
+    .step-item:hover{border-color:var(--border2);}
+    .step-n{font-family:var(--mono);font-size:.68rem;color:var(--lime);border:1px solid var(--lime-border);width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .step-item p{color:var(--muted2);font-size:.87rem;line-height:1.65;}
+    .step-item strong{color:var(--text);}
+
+    /* TOOL ROW */
+    .tool-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);margin:1.4rem 0;}
+    .tool-card{background:var(--surface);padding:1.25rem;transition:background .2s;}
+    .tool-card:hover{background:var(--surface2);}
+    .tool-badge{font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.5rem;}
+    .tool-card h4{font-size:.88rem;font-weight:600;margin-bottom:.3rem;}
+    .tool-card p{color:var(--muted2);font-size:.78rem;line-height:1.6;}
+    .tool-link{font-family:var(--mono);font-size:.65rem;color:var(--blue);margin-top:.5rem;display:block;text-decoration:none;}
+    .tool-link:hover{text-decoration:underline;}
+
+    /* REFLECT */
+    .reflect{background:var(--surface);border:1px solid var(--border2);padding:1.4rem;margin:1.4rem 0;}
+    .reflect h4{font-size:.9rem;font-weight:600;margin-bottom:.75rem;}
+    .rq{display:flex;gap:.65rem;margin-bottom:.65rem;align-items:flex-start;}
+    .rq::before{content:'?';font-family:var(--mono);font-size:.65rem;color:var(--lime);border:1px solid var(--lime-border);width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+    .rq p{color:var(--muted2);font-size:.87rem;line-height:1.6;}
+
+    /* PROJECT BRIEF */
+    .project-brief{border:1px solid var(--lime-border);background:var(--lime-dim);padding:1.5rem;margin:1.5rem 0;}
+    .pb-label{font-family:var(--mono);font-size:.65rem;color:var(--lime);letter-spacing:.08em;margin-bottom:.75rem;}
+    .pb-rows{display:flex;flex-direction:column;gap:.5rem;}
+    .pb-row{display:flex;gap:1rem;align-items:baseline;}
+    .pb-key{font-family:var(--mono);font-size:.7rem;color:var(--muted);width:90px;flex-shrink:0;}
+    .pb-val{font-size:.87rem;color:var(--text);}
+
+    /* LESSON NAV */
+    .lnav{display:flex;gap:1rem;margin-top:2.5rem;padding-top:1.75rem;border-top:1px solid var(--border);flex-wrap:wrap;}
+    .done-btn{font-family:var(--mono);font-size:.76rem;font-weight:700;color:var(--bg);background:var(--lime);border:none;padding:.7rem 1.65rem;cursor:pointer;clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));transition:opacity .2s;}
+    .done-btn:hover{opacity:.85;}
+    .next-btn{font-family:var(--mono);font-size:.76rem;color:var(--text);background:transparent;border:1px solid var(--border2);padding:.7rem 1.65rem;cursor:pointer;transition:border-color .2s,color .2s;}
+    .next-btn:hover{border-color:var(--lime-border);color:var(--lime);}
+
+    /* TABLE */
+    .data-table{width:100%;border-collapse:collapse;margin:1.4rem 0;font-size:.85rem;}
+    .data-table th{font-family:var(--mono);font-size:.65rem;letter-spacing:.07em;color:var(--muted);padding:.65rem .9rem;border-bottom:1px solid var(--border2);text-align:left;}
+    .data-table td{padding:.75rem .9rem;border-bottom:1px solid var(--border);color:var(--muted2);line-height:1.55;}
+    .data-table td:first-child{color:var(--text);font-weight:500;}
+    .data-table tr:hover td{background:var(--surface);}
+
+    /* WELCOME CARDS */
+    .wgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--border);margin:1.75rem 0;}
+    .wcard{background:var(--surface);padding:1.75rem;transition:background .2s;}
+    .wcard:hover{background:var(--surface2);}
+    .wcard-icon{font-size:1.35rem;margin-bottom:.6rem;}
+    .wcard h3{font-size:.9rem;font-weight:600;margin-bottom:.35rem;}
+    .wcard p{color:var(--muted2);font-size:.8rem;line-height:1.6;}
+
+    @media(max-width:768px){
+      .app-layout{grid-template-columns:1fr;}
+      .sidebar{width:100%;position:relative;top:0;display:none;border-right:none;border-bottom:1px solid var(--border);}
+      .sidebar.open{display:block;}
+      .content{margin-left:0;padding:1.5rem;}
+      .mob-menu{display:block;}
+      nav{padding:1rem 1.25rem;}
+    }
+  </style>
+</head>
+<body>
+<div class="bg-layer"></div>
+
+<!-- LOCK -->
+<div id="lock">
+  <div class="lock-box">
+    <div class="lock-logo">stack<em>_</em>up<em>();</em></div>
+    <h2>Phase 1 — Foundations</h2>
+    <p>Enter your StackUp access code to continue. Provided by your tutor when you enrolled.</p>
+    <input type="password" id="pass-input" placeholder="Access code" autocomplete="off"/>
+    <button class="lock-btn" onclick="tryUnlock()">UNLOCK →</button>
+    <div class="lock-error" id="lock-error">Incorrect code. Check with your tutor.</div>
+    <div class="lock-note">Phase 1 is a paid module. Get access at stackup.build</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <nav>
+    <div class="nav-logo">stack<em>_</em>up<em>();</em></div>
+    <button class="mob-menu" onclick="toggleSidebar()">MENU</button>
+    <div class="nav-center">
+      <span class="nav-phase">PHASE 1 — FOUNDATIONS</span>
+    </div>
+    <div class="nav-right">
+      <span class="nav-progress" id="prog-text">0 / 8 done</span>
+      <button class="logout-btn" onclick="logout()">LOGOUT</button>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-section">
+        <span class="sb-label">your progress</span>
+        <div class="prog-wrap">
+          <div class="prog-row"><span>phase 1</span><span id="prog-pct">0%</span></div>
+          <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+        </div>
+      </div>
+      <div class="sb-section">
+        <span class="sb-label">lessons</span>
+        <div class="ll active" onclick="go('welcome')" id="link-welcome"><span class="ll-num">00</span><span class="ll-title">Phase 1 Overview</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l1')" id="link-l1"><span class="ll-num">01</span><span class="ll-title">How the Web Works</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l2')" id="link-l2"><span class="ll-num">02</span><span class="ll-title">Your First HTML Page</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l3')" id="link-l3"><span class="ll-num">03</span><span class="ll-title">Styling with CSS</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l4')" id="link-l4"><span class="ll-num">04</span><span class="ll-title">Python Basics + AI Pair Programming</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l5')" id="link-l5"><span class="ll-num">05</span><span class="ll-title">Git — Version Control from Day One</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l6')" id="link-l6"><span class="ll-num">06</span><span class="ll-title">Computational Thinking + Logic</span><span class="ll-check">✓</span></div>
+        <div class="ll" onclick="go('l7')" id="link-l7"><span class="ll-num">07</span><span class="ll-title">Phase Project — Ship Your First Site</span><span class="ll-check">✓</span></div>
+      </div>
+      <div class="sb-section">
+        <span class="sb-label">downloads</span>
+        <a class="sb-dl" href="../pdfs/phase1-workbook.pdf" download>↓ Phase 1 Workbook PDF</a>
+      </div>
+    </aside>
+
+    <main class="content">
+
+      <!-- WELCOME -->
+      <div class="lp active" id="page-welcome">
+        <span class="lp-eyebrow">phase 1 · foundations</span>
+        <h1>Let's start building.</h1>
+        <p class="lp-desc">Phase 1 takes you from zero coding experience to a live personal website on the internet. Every lesson builds toward that one outcome — and you'll use AI as your co-pilot the whole way.</p>
+        <div class="wgrid">
+          <div class="wcard"><div class="wcard-icon">📄</div><h3>7 lessons</h3><p>HTML, CSS, Python basics, Git, logic — plus your first deployed project.</p></div>
+          <div class="wcard"><div class="wcard-icon">🚀</div><h3>1 live project</h3><p>Your personal site — deployed to a real URL on GitHub Pages. Free.</p></div>
+          <div class="wcard"><div class="wcard-icon">🤖</div><h3>AI throughout</h3><p>You'll use Claude and Cursor in every lesson. AI is a tool, not a shortcut.</p></div>
+          <div class="wcard"><div class="wcard-icon">💸</div><h3>Zero cost tools</h3><p>VS Code, GitHub, Claude free tier, Vercel. All free. No credit card.</p></div>
+        </div>
+        <div class="callout">
+          <div class="callout-lbl">THE PHASE 1 PROMISE</div>
+          <p>By the end of Phase 1 you will have: a live personal website with your own URL, your first Python script, a GitHub profile with real commits, and a clear understanding of how web technology fits together. That's your portfolio starting point.</p>
+        </div>
+        <div class="callout amber">
+          <div class="callout-lbl">FREE TOOLS LIST — INSTALL THESE BEFORE LESSON 1</div>
+          <p>
+            <strong>VS Code</strong> — code.visualstudio.com (free code editor)<br/>
+            <strong>Git</strong> — git-scm.com (version control)<br/>
+            <strong>GitHub account</strong> — github.com (free)<br/>
+            <strong>Claude account</strong> — claude.ai (free tier is fine)<br/>
+            <strong>Python</strong> — python.org (free, version 3.11+)
+          </p>
+        </div>
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('welcome')">GOT IT — LET'S GO →</button>
+          <button class="next-btn" onclick="go('l1')">LESSON 1</button>
+        </div>
+      </div>
+
+      <!-- LESSON 1: HOW THE WEB WORKS -->
+      <div class="lp" id="page-l1">
+        <span class="lp-eyebrow">lesson 01</span>
+        <h1>How the Web Works</h1>
+        <p class="lp-desc">Before you build anything, you need to understand the system you're building in. This lesson demystifies the web — what happens when you type a URL, and where your code lives.</p>
+
+        <div class="blk">
+          <div class="blk-lbl">THE CORE IDEA</div>
+          <div class="prose">
+            <p>The web is just computers talking to each other. When you type <em>google.com</em> into a browser, your computer asks another computer (a server) "can I have the files for this page please?" That server sends back some files — HTML, CSS, JavaScript — and your browser turns those files into what you see on screen.</p>
+            <p>That's it. Every website you've ever visited is just files on a computer somewhere. Your job as a developer is to <strong>create those files</strong> and put them on a computer that other people can reach.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-lbl">THE THREE FILES THAT MAKE EVERY WEBSITE</div>
+          <p>
+            <strong>HTML</strong> — the structure. The bones. Text, headings, links, images.<br/>
+            <strong>CSS</strong> — the style. Colours, fonts, layout, spacing.<br/>
+            <strong>JavaScript</strong> — the behaviour. Clicks, animations, dynamic content.<br/><br/>
+            Think of it as: HTML = the building, CSS = the interior design, JS = the electricity.
+          </p>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">KEY VOCABULARY</div>
+          <table class="data-table">
+            <thead><tr><th>Term</th><th>What it means</th><th>Analogy</th></tr></thead>
+            <tbody>
+              <tr><td>Server</td><td>A computer that stores and serves files to anyone who asks</td><td>A library that mails books on request</td></tr>
+              <tr><td>Browser</td><td>Software that requests files and renders them visually</td><td>Your eyes + the reading light</td></tr>
+              <tr><td>URL</td><td>An address that points to a specific file on a specific server</td><td>A postal address for files</td></tr>
+              <tr><td>DNS</td><td>Translates domain names into server IP addresses</td><td>A phone book for the internet</td></tr>
+              <tr><td>HTTP/HTTPS</td><td>The rules for how files are requested and sent</td><td>The postal system protocol</td></tr>
+              <tr><td>Frontend</td><td>The files the browser sees and renders (HTML/CSS/JS)</td><td>The shop front</td></tr>
+              <tr><td>Backend</td><td>Server-side code that generates or processes data</td><td>The stock room</td></tr>
+              <tr><td>GitHub Pages</td><td>Free hosting — put your files on GitHub, they serve them</td><td>Free shelf in the library</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">ACTIVITY — USE YOUR BROWSER AS A TOOL</div>
+          <div class="act-grid">
+            <div class="act-card">
+              <div class="act-step">STEP 01</div>
+              <h4>Inspect any website</h4>
+              <p>Open any website. Right-click anywhere and choose "Inspect" (or press F12). Click the Elements tab. You're looking at the HTML file your browser received.</p>
+              <div class="act-time">// 5 min</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">STEP 02</div>
+              <h4>Find the three layers</h4>
+              <p>In the Elements panel, find an HTML tag. In the Styles panel on the right, find the CSS applying to it. Note how they're separate files working together.</p>
+              <div class="act-time">// 5 min</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">STEP 03</div>
+              <h4>Ask Claude to explain it</h4>
+              <p>Copy a snippet of the HTML you see. Open Claude and ask: "I'm learning web dev. Can you explain what this HTML does in plain English?" Read the response critically.</p>
+              <div class="act-time">// 10 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reflect">
+          <h4>Think about this</h4>
+          <div class="rq"><p>If every website is just files on a computer — what does that mean about your ability to build one?</p></div>
+          <div class="rq"><p>What's the difference between a "website" and a "web app"? Is there one?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l1')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="go('l2')">NEXT LESSON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 2: HTML -->
+      <div class="lp" id="page-l2">
+        <span class="lp-eyebrow">lesson 02</span>
+        <h1>Your First HTML Page</h1>
+        <p class="lp-desc">HTML is the language of structure. In this lesson you write your first real HTML file, understand how tags work, and build the skeleton of your Phase 1 project.</p>
+
+        <div class="blk">
+          <div class="blk-lbl">HOW HTML WORKS</div>
+          <div class="prose">
+            <p>HTML uses <em>tags</em> to label content. A tag opens with <em>&lt;tagname&gt;</em> and closes with <em>&lt;/tagname&gt;</em>. Everything between them is the content. Think of tags as instructions to the browser: "this is a heading", "this is a paragraph", "this is an image".</p>
+            <p>You don't need to memorise every tag. You need to understand the concept, know the common ones, and know <strong>how to look up the rest</strong>. That's how real developers work.</p>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>HTML · skeleton of every webpage</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm">&lt;!-- This is the basic structure of every HTML page --&gt;</span>
+<span class="tag">&lt;!DOCTYPE html&gt;</span>
+<span class="tag">&lt;html</span> <span class="attr">lang</span>=<span class="val">"en"</span><span class="tag">&gt;</span>
+  <span class="tag">&lt;head&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attr">charset</span>=<span class="val">"UTF-8"</span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;meta</span> <span class="attr">name</span>=<span class="val">"viewport"</span> <span class="attr">content</span>=<span class="val">"width=device-width, initial-scale=1.0"</span><span class="tag">/&gt;</span>
+    <span class="tag">&lt;title&gt;</span>My First Page<span class="tag">&lt;/title&gt;</span>
+  <span class="tag">&lt;/head&gt;</span>
+  <span class="tag">&lt;body&gt;</span>
+
+    <span class="tag">&lt;h1&gt;</span>Hello, I'm building things.<span class="tag">&lt;/h1&gt;</span>
+    <span class="tag">&lt;p&gt;</span>This is my first HTML page.<span class="tag">&lt;/p&gt;</span>
+
+    <span class="cm">&lt;!-- A link --&gt;</span>
+    <span class="tag">&lt;a</span> <span class="attr">href</span>=<span class="val">"https://github.com"</span><span class="tag">&gt;</span>My GitHub<span class="tag">&lt;/a&gt;</span>
+
+  <span class="tag">&lt;/body&gt;</span>
+<span class="tag">&lt;/html&gt;</span></pre>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">COMMON TAGS YOU'LL USE CONSTANTLY</div>
+          <table class="data-table">
+            <thead><tr><th>Tag</th><th>Purpose</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td>&lt;h1&gt; – &lt;h6&gt;</td><td>Headings (h1 = biggest)</td><td>&lt;h1&gt;Page Title&lt;/h1&gt;</td></tr>
+              <tr><td>&lt;p&gt;</td><td>Paragraph of text</td><td>&lt;p&gt;Some text here.&lt;/p&gt;</td></tr>
+              <tr><td>&lt;a&gt;</td><td>Link to another page</td><td>&lt;a href="url"&gt;Click me&lt;/a&gt;</td></tr>
+              <tr><td>&lt;img&gt;</td><td>Display an image</td><td>&lt;img src="photo.jpg" alt="me"/&gt;</td></tr>
+              <tr><td>&lt;div&gt;</td><td>Container / section</td><td>&lt;div class="hero"&gt;...&lt;/div&gt;</td></tr>
+              <tr><td>&lt;ul&gt; / &lt;li&gt;</td><td>Unordered list</td><td>&lt;ul&gt;&lt;li&gt;Item&lt;/li&gt;&lt;/ul&gt;</td></tr>
+              <tr><td>&lt;nav&gt;</td><td>Navigation area</td><td>&lt;nav&gt;links go here&lt;/nav&gt;</td></tr>
+              <tr><td>&lt;section&gt;</td><td>Thematic section of content</td><td>&lt;section id="about"&gt;&lt;/section&gt;</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-lbl">HOW TO USE AI HERE</div>
+          <p>Open VS Code and start writing your HTML. When you get stuck, don't Google it first — ask Claude. "I'm writing HTML for my personal site. How do I add a navigation bar with 4 links?" Then read the response, understand it, and type it yourself. Don't copy-paste blindly — you won't learn that way.</p>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">ACTIVITY — BUILD YOUR PERSONAL SITE SKELETON</div>
+          <div class="step-list">
+            <div class="step-item"><div class="step-n">01</div><p>Create a new folder called <strong>my-site</strong> on your desktop. Open it in VS Code (File → Open Folder).</p></div>
+            <div class="step-item"><div class="step-n">02</div><p>Create a new file called <strong>index.html</strong>. Type (don't paste) the skeleton code above.</p></div>
+            <div class="step-item"><div class="step-n">03</div><p>Add these sections to the body: a heading with your name, a short paragraph about yourself, a list of 3 things you want to build, and a link to your (future) GitHub profile.</p></div>
+            <div class="step-item"><div class="step-n">04</div><p>Open the file in your browser: right-click the file → "Open with" → Chrome/Firefox. You should see your page.</p></div>
+            <div class="step-item"><div class="step-n">05</div><p>Ask Claude: "Review this HTML and tell me one thing I could improve." Read the suggestion. Decide if you agree. Apply it if you do.</p></div>
+          </div>
+        </div>
+
+        <div class="reflect">
+          <h4>Reflect</h4>
+          <div class="rq"><p>Why does the order of HTML tags matter? What happens if you put content outside the &lt;body&gt;?</p></div>
+          <div class="rq"><p>What's the difference between how AI explains code and how a search result explains it?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l2')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="go('l3')">NEXT: CSS</button>
+        </div>
+      </div>
+
+      <!-- LESSON 3: CSS -->
+      <div class="lp" id="page-l3">
+        <span class="lp-eyebrow">lesson 03</span>
+        <h1>Styling with CSS</h1>
+        <p class="lp-desc">CSS transforms your plain HTML skeleton into something that looks intentional. This is where your design background becomes a superpower — you already have taste. Now you have the tools to express it.</p>
+
+        <div class="blk">
+          <div class="blk-lbl">HOW CSS WORKS</div>
+          <div class="prose">
+            <p>CSS works by <em>selecting</em> HTML elements and applying <em>rules</em> to them. A rule says: "find all elements matching this selector, and apply these property-value pairs."</p>
+            <p>The selector can be a tag name, a class (starting with .), or an ID (starting with #). Properties are things like <em>color</em>, <em>font-size</em>, <em>background</em>, <em>padding</em>. Values are what you set them to.</p>
+            <p><strong>If you studied design, think of CSS as your style guide made executable.</strong> Every decision you'd make in a design brief — typography, colour, spacing, layout — CSS is how you implement it in code.</p>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>CSS · styling your personal site</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm">/* CSS variables — define your palette once, use everywhere */</span>
+<span class="tag">:root</span> {
+  <span class="attr">--bg</span>: <span class="val">#0a0a0a</span>;
+  <span class="attr">--text</span>: <span class="val">#f0f0f0</span>;
+  <span class="attr">--accent</span>: <span class="val">#c6f135</span>;  <span class="cm">/* your brand colour */</span>
+}
+
+<span class="cm">/* Reset default browser styles */</span>
+<span class="tag">*</span> { <span class="attr">box-sizing</span>: <span class="val">border-box</span>; <span class="attr">margin</span>: <span class="val">0</span>; <span class="attr">padding</span>: <span class="val">0</span>; }
+
+<span class="tag">body</span> {
+  <span class="attr">background</span>: <span class="val">var(--bg)</span>;
+  <span class="attr">color</span>: <span class="val">var(--text)</span>;
+  <span class="attr">font-family</span>: <span class="val">'Inter', sans-serif</span>;
+  <span class="attr">line-height</span>: <span class="val">1.6</span>;
+}
+
+<span class="tag">h1</span> {
+  <span class="attr">font-size</span>: <span class="val">2.5rem</span>;
+  <span class="attr">color</span>: <span class="val">var(--accent)</span>;
+  <span class="attr">margin-bottom</span>: <span class="val">1rem</span>;
+}
+
+<span class="cm">/* Class selector — apply to any element with class="card" */</span>
+<span class="tag">.card</span> {
+  <span class="attr">background</span>: <span class="val">#1a1a1a</span>;
+  <span class="attr">padding</span>: <span class="val">1.5rem</span>;
+  <span class="attr">border</span>: <span class="val">1px solid #333</span>;
+  <span class="attr">border-radius</span>: <span class="val">4px</span>;
+}</pre>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">THE LAYOUT MODEL — UNDERSTAND THIS ONCE, USE IT FOREVER</div>
+          <div class="prose">
+            <p>Every HTML element is a rectangular box. That box has: <em>content</em> (the text/image), <em>padding</em> (space inside the border), <em>border</em> (the edge), and <em>margin</em> (space outside). This is the CSS box model. Understanding it explains 80% of layout bugs.</p>
+            <p>For layout, <strong>Flexbox</strong> is what you'll use most at this stage. It lets you arrange items in a row or column, distribute space between them, and align them — with very clean, readable CSS.</p>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>CSS · flexbox for layout</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm">/* Flexbox — your main layout tool */</span>
+<span class="tag">.nav</span> {
+  <span class="attr">display</span>: <span class="val">flex</span>;            <span class="cm">/* turn it on */</span>
+  <span class="attr">justify-content</span>: <span class="val">space-between</span>; <span class="cm">/* spread items */</span>
+  <span class="attr">align-items</span>: <span class="val">center</span>;    <span class="cm">/* vertical centre */</span>
+  <span class="attr">padding</span>: <span class="val">1rem 2rem</span>;
+  <span class="attr">border-bottom</span>: <span class="val">1px solid #333</span>;
+}
+
+<span class="tag">.cards-row</span> {
+  <span class="attr">display</span>: <span class="val">flex</span>;
+  <span class="attr">gap</span>: <span class="val">1rem</span>;              <span class="cm">/* space between cards */</span>
+  <span class="attr">flex-wrap</span>: <span class="val">wrap</span>;         <span class="cm">/* wrap to next line on mobile */</span>
+}
+
+<span class="cm">/* Make it mobile-friendly */</span>
+<span class="tag">@media (max-width: 600px)</span> {
+  <span class="tag">.nav</span> { <span class="attr">flex-direction</span>: <span class="val">column</span>; <span class="attr">gap</span>: <span class="val">1rem</span>; }
+}</pre>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-lbl">YOUR DESIGN BACKGROUND — USE IT HERE</div>
+          <p>Before you write CSS, sketch your layout on paper first (or in Canva, Figma free tier, whatever you have). Decide your colour palette — maximum 3 colours. Choose one font. Define spacing rules. This is your style guide. CSS is just how you implement it. Developers who think in systems build better UIs.</p>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">ACTIVITY — STYLE YOUR PERSONAL SITE</div>
+          <div class="step-list">
+            <div class="step-item"><div class="step-n">01</div><p>Create <strong>style.css</strong> in your my-site folder. Link it in your HTML: add <strong>&lt;link rel="stylesheet" href="style.css"/&gt;</strong> inside the &lt;head&gt;.</p></div>
+            <div class="step-item"><div class="step-n">02</div><p>Set your CSS variables: pick a background colour, text colour, and one accent colour. Apply them to the body.</p></div>
+            <div class="step-item"><div class="step-n">03</div><p>Style your heading, paragraph, and list. Add padding to the body so content isn't flush against the edge.</p></div>
+            <div class="step-item"><div class="step-n">04</div><p>Add a simple nav at the top using flexbox. Your name on the left, 2–3 links on the right.</p></div>
+            <div class="step-item"><div class="step-n">05</div><p>Prompt Claude: "I'm styling a personal site. Here's my CSS so far: [paste it]. What's one layout improvement you'd make and why?" Apply it if it makes sense to you.</p></div>
+          </div>
+        </div>
+
+        <div class="reflect">
+          <h4>Reflect</h4>
+          <div class="rq"><p>How does CSS connect to what you know from design? What's familiar? What's new?</p></div>
+          <div class="rq"><p>Why should you define colours as variables instead of typing the hex code every time?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l3')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="go('l4')">NEXT: PYTHON</button>
+        </div>
+      </div>
+
+      <!-- LESSON 4: PYTHON -->
+      <div class="lp" id="page-l4">
+        <span class="lp-eyebrow">lesson 04</span>
+        <h1>Python Basics + AI Pair Programming</h1>
+        <p class="lp-desc">Python is your second language — and your gateway to AI tools, automation, and backend work. In this lesson you write real Python, and you learn to use AI as a coding partner (not a crutch).</p>
+
+        <div class="blk">
+          <div class="blk-lbl">WHY PYTHON FIRST</div>
+          <div class="prose">
+            <p>Python reads almost like plain English, which makes it ideal for learning logic without fighting syntax. It's also the dominant language for AI/ML, data, automation, and scripting — the things you'll build in Phase 3 and 4. Learning Python now means every AI tool you touch later will feel familiar.</p>
+            <p>You don't need to become a Python expert in Phase 1. You need to understand: <em>variables, data types, functions, loops, and conditionals.</em> That's the foundation everything else builds on.</p>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>Python · the fundamentals</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm"># Variables — storing values</span>
+<span class="fn">name</span> = <span class="str">"Tina"</span>
+<span class="fn">age</span> = <span class="num">17</span>
+<span class="fn">is_freelancer</span> = <span class="kw">True</span>
+
+<span class="cm"># f-strings — embed variables in text</span>
+<span class="kw">print</span>(<span class="str">f"Hi, I'm {name} and I'm {age}."</span>)
+
+<span class="cm"># Functions — reusable blocks of logic</span>
+<span class="kw">def</span> <span class="fn">greet</span>(person_name):
+    <span class="kw">return</span> <span class="str">f"Hey {person_name}, welcome to StackUp."</span>
+
+<span class="cm"># Calling the function</span>
+<span class="kw">print</span>(<span class="fn">greet</span>(<span class="str">"Jordan"</span>))
+
+<span class="cm"># Lists — a collection of values</span>
+<span class="fn">skills</span> = [<span class="str">"HTML"</span>, <span class="str">"CSS"</span>, <span class="str">"Python"</span>, <span class="str">"Git"</span>]
+
+<span class="cm"># Loops — do something for each item</span>
+<span class="kw">for</span> skill <span class="kw">in</span> skills:
+    <span class="kw">print</span>(<span class="str">f"I'm learning: {skill}"</span>)
+
+<span class="cm"># Conditionals — make decisions</span>
+<span class="kw">if</span> <span class="fn">age</span> >= <span class="num">16</span>:
+    <span class="kw">print</span>(<span class="str">"Old enough to freelance."</span>)
+<span class="kw">else</span>:
+    <span class="kw">print</span>(<span class="str">"Keep learning — you're almost there."</span>)</pre>
+        </div>
+
+        <div class="callout">
+          <div class="callout-lbl">AI PAIR PROGRAMMING — THE RIGHT WAY</div>
+          <p>
+            <strong>Wrong way:</strong> "Write me a Python script that does X." Copy, paste, done.<br/>
+            <strong>Right way:</strong> Write the structure yourself first. Get stuck. Then: "I'm writing a Python function that takes a name and returns a greeting. Here's what I have so far: [code]. I'm getting this error: [error]. What's wrong?"<br/><br/>
+            The difference is understanding. The wrong way makes you dependent. The right way makes you dangerous.
+          </p>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">ACTIVITY — WRITE A FREELANCE RATE CALCULATOR</div>
+          <div class="prose"><p>Build a Python script that helps a freelancer work out what to charge. This is real — you'll use the same logic when you start quoting clients.</p></div>
+          <div class="step-list">
+            <div class="step-item"><div class="step-n">01</div><p>Create a new file <strong>rate_calculator.py</strong> in VS Code.</p></div>
+            <div class="step-item"><div class="step-n">02</div><p>Write a function that takes: hourly_rate, estimated_hours, and revision_buffer (a percentage like 0.2 for 20%). It should return the total project quote.</p></div>
+            <div class="step-item"><div class="step-n">03</div><p>Print a clean output: "Project quote: $X.XX" using an f-string.</p></div>
+            <div class="step-item"><div class="step-n">04</div><p>Add a second function that converts AUD to USD (use a fixed rate like 0.65 — good enough for now).</p></div>
+            <div class="step-item"><div class="step-n">05</div><p>Test it: run it in the VS Code terminal with <strong>python rate_calculator.py</strong></p></div>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>Python · starter scaffold for the activity</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm"># rate_calculator.py — your first useful script</span>
+
+<span class="kw">def</span> <span class="fn">calculate_quote</span>(hourly_rate, estimated_hours, revision_buffer):
+    <span class="cm">"""
+    Calculate a project quote including revision buffer.
+    revision_buffer: 0.2 means add 20% for revisions
+    """</span>
+    base = hourly_rate * estimated_hours
+    total = base * (<span class="num">1</span> + revision_buffer)
+    <span class="kw">return</span> <span class="fn">round</span>(total, <span class="num">2</span>)
+
+<span class="kw">def</span> <span class="fn">aud_to_usd</span>(aud_amount, rate=<span class="num">0.65</span>):
+    <span class="kw">return</span> <span class="fn">round</span>(aud_amount * rate, <span class="num">2</span>)
+
+<span class="cm"># --- Run it ---</span>
+quote_aud = <span class="fn">calculate_quote</span>(
+    hourly_rate=<span class="num">50</span>,
+    estimated_hours=<span class="num">10</span>,
+    revision_buffer=<span class="num">0.2</span>
+)
+
+<span class="kw">print</span>(<span class="str">f"Project quote (AUD): ${quote_aud}"</span>)
+<span class="kw">print</span>(<span class="str">f"Project quote (USD): ${aud_to_usd(quote_aud)}"</span>)</pre>
+        </div>
+
+        <div class="reflect">
+          <h4>Reflect</h4>
+          <div class="rq"><p>What's a function? In your own words — not from a textbook.</p></div>
+          <div class="rq"><p>How could this script be useful to you as a real freelancer?</p></div>
+          <div class="rq"><p>What's one thing you'd add to make it more useful?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l4')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="go('l5')">NEXT: GIT</button>
+        </div>
+      </div>
+
+      <!-- LESSON 5: GIT -->
+      <div class="lp" id="page-l5">
+        <span class="lp-eyebrow">lesson 05</span>
+        <h1>Git — Version Control from Day One</h1>
+        <p class="lp-desc">Git is non-negotiable. It's how every developer in the world saves and shares their work. In this lesson you create your GitHub profile, make your first commit, and publish your personal site live.</p>
+
+        <div class="blk">
+          <div class="blk-lbl">WHAT GIT ACTUALLY IS</div>
+          <div class="prose">
+            <p>Git is a tool that tracks every change you make to your code. Every time you <em>commit</em>, Git saves a snapshot of your project. If you break something, you can go back. If you're working with others, you can merge your changes. Every professional developer uses it — always, on every project.</p>
+            <p>GitHub is a website that stores your Git repositories online. Your GitHub profile is your developer portfolio. Every commit you make is visible. <strong>A GitHub profile with real commits is worth more than a CV in your first job search.</strong></p>
+          </div>
+        </div>
+
+        <div class="callout amber">
+          <div class="callout-lbl">THE FOUR COMMANDS YOU'LL USE 90% OF THE TIME</div>
+          <p>
+            <strong>git init</strong> — start tracking a folder<br/>
+            <strong>git add .</strong> — stage all changed files<br/>
+            <strong>git commit -m "message"</strong> — save a snapshot<br/>
+            <strong>git push</strong> — send to GitHub
+          </p>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>Terminal · your first repo workflow</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm"># 1. Initialise Git in your project folder</span>
+git init
+
+<span class="cm"># 2. Tell Git who you are (one-time setup)</span>
+git config --global user.email <span class="str">"you@email.com"</span>
+git config --global user.name <span class="str">"Your Name"</span>
+
+<span class="cm"># 3. Stage everything in the folder</span>
+git add .
+
+<span class="cm"># 4. Commit with a meaningful message</span>
+git commit -m <span class="str">"Initial commit: personal site skeleton"</span>
+
+<span class="cm"># 5. Connect to GitHub (create repo on github.com first)</span>
+git remote add origin https://github.com/yourusername/my-site.git
+
+<span class="cm"># 6. Push to GitHub</span>
+git push -u origin main
+
+<span class="cm"># After this, your daily workflow is just:</span>
+git add .
+git commit -m <span class="str">"describe what you changed"</span>
+git push</pre>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">DEPLOY TO GITHUB PAGES — YOUR SITE GOES LIVE</div>
+          <div class="step-list">
+            <div class="step-item"><div class="step-n">01</div><p>Push your my-site folder to GitHub using the commands above. Create a new repo on github.com called <strong>my-site</strong> first.</p></div>
+            <div class="step-item"><div class="step-n">02</div><p>On GitHub, go to your repo → Settings → Pages → Source: Deploy from branch → main → Save.</p></div>
+            <div class="step-item"><div class="step-n">03</div><p>Wait 2 minutes. Refresh. You'll see a URL: <strong>yourusername.github.io/my-site</strong>. That's your live site.</p></div>
+            <div class="step-item"><div class="step-n">04</div><p>Make a change to your HTML. Save it. Run <strong>git add . && git commit -m "update" && git push</strong>. Your live site updates automatically.</p></div>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-lbl">COMMIT MESSAGE BEST PRACTICE</div>
+          <p>Good: "Add navigation bar with 3 links"<br/>
+          Good: "Fix mobile layout on hero section"<br/>
+          Bad: "update" / "fix" / "asdfgh"<br/><br/>
+          Write commit messages as if a colleague needs to understand what you changed in 6 months. This is also how clients and employers read your GitHub.</p>
+        </div>
+
+        <div class="reflect">
+          <h4>Reflect</h4>
+          <div class="rq"><p>Why is it important to commit often rather than in one big chunk at the end?</p></div>
+          <div class="rq"><p>Your GitHub profile is now public. What does that mean for your freelance credibility?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l5')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="go('l6')">NEXT: LOGIC</button>
+        </div>
+      </div>
+
+      <!-- LESSON 6: LOGIC -->
+      <div class="lp" id="page-l6">
+        <span class="lp-eyebrow">lesson 06</span>
+        <h1>Computational Thinking + Logic</h1>
+        <p class="lp-desc">Every program is a series of decisions. This lesson builds the mental model that makes all future coding — and all future AI prompting — dramatically more precise.</p>
+
+        <div class="blk">
+          <div class="blk-lbl">FOUR PILLARS OF COMPUTATIONAL THINKING</div>
+          <table class="data-table">
+            <thead><tr><th>Pillar</th><th>What it means</th><th>Real example</th></tr></thead>
+            <tbody>
+              <tr><td>Decomposition</td><td>Break a big problem into smaller solvable parts</td><td>"Build a site" → nav + hero + about + contact</td></tr>
+              <tr><td>Pattern Recognition</td><td>Spot what repeats so you can reuse or automate</td><td>Every page has a nav — make it a component</td></tr>
+              <tr><td>Abstraction</td><td>Focus on what matters, ignore what doesn't</td><td>A function hides details behind a clean name</td></tr>
+              <tr><td>Algorithms</td><td>A precise, step-by-step process for solving something</td><td>A recipe is an algorithm for cooking</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">LOGIC IN CODE — BOOLEAN THINKING</div>
+          <div class="prose">
+            <p>Logic in programming is binary: something is either <em>True</em> or <em>False</em>. Conditions, comparisons, and decisions all reduce to this. Understanding boolean logic means you can reason about any conditional, any filter, any access control — from a simple if-statement to a database query.</p>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-bar"><span>Python · logic and decision making</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+          <pre><span class="cm"># Boolean logic — True or False is all there is</span>
+<span class="fn">user_logged_in</span> = <span class="kw">True</span>
+<span class="fn">has_paid</span> = <span class="kw">False</span>
+
+<span class="cm"># and: both must be True</span>
+<span class="kw">if</span> user_logged_in <span class="kw">and</span> has_paid:
+    <span class="kw">print</span>(<span class="str">"Access granted"</span>)
+<span class="kw">else</span>:
+    <span class="kw">print</span>(<span class="str">"Please purchase to continue"</span>)
+
+<span class="cm"># or: at least one must be True</span>
+<span class="fn">is_admin</span> = <span class="kw">False</span>
+<span class="kw">if</span> has_paid <span class="kw">or</span> is_admin:
+    <span class="kw">print</span>(<span class="str">"You can access this content"</span>)
+
+<span class="cm"># not: flip it</span>
+<span class="kw">if</span> <span class="kw">not</span> has_paid:
+    <span class="kw">print</span>(<span class="str">"Reminder: payment required"</span>)
+
+<span class="cm"># Comparison operators</span>
+<span class="fn">score</span> = <span class="num">85</span>
+<span class="kw">if</span> score >= <span class="num">90</span>:
+    <span class="fn">grade</span> = <span class="str">"A"</span>
+<span class="kw">elif</span> score >= <span class="num">75</span>:
+    <span class="fn">grade</span> = <span class="str">"B"</span>
+<span class="kw">else</span>:
+    <span class="fn">grade</span> = <span class="str">"C"</span>
+
+<span class="kw">print</span>(<span class="str">f"Grade: {grade}"</span>)</pre>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">ACTIVITY — LOGIC PUZZLE + CODE</div>
+          <div class="act-grid">
+            <div class="act-card">
+              <div class="act-step">PART A</div>
+              <h4>Pseudocode first</h4>
+              <p>A freelancer charges $50/hr for new clients and $40/hr for returning clients. Projects under 5 hours get a 10% discount. Write the logic in plain English steps before touching code.</p>
+              <div class="act-time">// 10 min</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">PART B</div>
+              <h4>Code it</h4>
+              <p>Turn your pseudocode into a Python function: <strong>calculate_rate(is_new_client, hours)</strong>. Test it with at least 3 different inputs to make sure the logic is correct.</p>
+              <div class="act-time">// 15 min</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">PART C</div>
+              <h4>Add it to your calculator</h4>
+              <p>Add this logic to your rate_calculator.py from Lesson 4. Now your calculator handles both client types automatically. Commit the update to GitHub.</p>
+              <div class="act-time">// 10 min</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reflect">
+          <h4>Reflect</h4>
+          <div class="rq"><p>Why is writing pseudocode first a good habit before coding?</p></div>
+          <div class="rq"><p>Can you think of a real situation in a web app where boolean logic controls what a user can or can't see?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l6')">MARK COMPLETE →</button>
+          <button class="next-btn" onclick="go('l7')">FINAL PROJECT</button>
+        </div>
+      </div>
+
+      <!-- LESSON 7: PROJECT -->
+      <div class="lp" id="page-l7">
+        <span class="lp-eyebrow">phase 1 project</span>
+        <h1>Ship Your First Site</h1>
+        <p class="lp-desc">This is it. You take everything from Phase 1 and ship a real, live personal site that you'll use as your freelance portfolio starting point. It goes to a real URL. It's yours.</p>
+
+        <div class="project-brief">
+          <div class="pb-label">// PROJECT BRIEF</div>
+          <div class="pb-rows">
+            <div class="pb-row"><span class="pb-key">what:</span><span class="pb-val">A personal site — your freelance introduction to the world</span></div>
+            <div class="pb-row"><span class="pb-key">audience:</span><span class="pb-val">Potential clients (Australian small businesses, to start)</span></div>
+            <div class="pb-row"><span class="pb-key">pages:</span><span class="pb-val">Home · About · Projects · Contact</span></div>
+            <div class="pb-row"><span class="pb-key">hosted:</span><span class="pb-val">GitHub Pages — free, live URL</span></div>
+            <div class="pb-row"><span class="pb-key">tools:</span><span class="pb-val">HTML + CSS + Git — no frameworks yet</span></div>
+            <div class="pb-row"><span class="pb-key">deliverable:</span><span class="pb-val">A public URL you can send to a client</span></div>
+          </div>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">PROJECT REQUIREMENTS</div>
+          <div class="step-list">
+            <div class="step-item"><div class="step-n">✓</div><p><strong>Navigation</strong> — links to all 4 sections, works on mobile and desktop</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>Hero section</strong> — your name, one sentence about what you do, a call to action</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>About section</strong> — who you are, what you're learning, what you want to build</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>Projects section</strong> — list your Phase 1 projects (even if small). Your rate calculator counts.</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>Contact section</strong> — email address or a simple contact form</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>Mobile responsive</strong> — must look good on a phone (use Flexbox + media queries)</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>CSS variables</strong> — define your colour palette as variables, not hardcoded values</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>At least 5 commits</strong> — show your build process. Each major section = one commit.</p></div>
+            <div class="step-item"><div class="step-n">✓</div><p><strong>Live on GitHub Pages</strong> — a real URL you can share</p></div>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div class="callout-lbl">HOW TO USE AI ON THIS PROJECT — THE RIGHT WAY</div>
+          <p>
+            Use AI for: specific questions, debugging errors, generating a single component you've tried yourself, explaining something you don't understand.<br/><br/>
+            Don't use AI for: generating the whole site at once, copy-pasting without reading, replacing thinking with prompting.<br/><br/>
+            <strong>A good test:</strong> if someone asked you to explain every line on your site, could you? If not — go back and understand it.
+          </p>
+        </div>
+
+        <div class="blk">
+          <div class="blk-lbl">BUILD PROCESS — USE THE DESIGN PROCESS</div>
+          <div class="act-grid">
+            <div class="act-card">
+              <div class="act-step">PHASE 1 — DEFINE</div>
+              <h4>Sketch it first</h4>
+              <p>On paper or in Canva/Figma free — sketch the layout for each page. Decide colours, fonts, and the one thing that makes it feel like you.</p>
+              <div class="act-time">// before any code</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">PHASE 2 — BUILD</div>
+              <h4>HTML skeleton first</h4>
+              <p>Write all the HTML with no CSS. Get the structure right. Check it in your browser. Commit: "Add HTML skeleton".</p>
+              <div class="act-time">// commit early</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">PHASE 3 — STYLE</div>
+              <h4>CSS section by section</h4>
+              <p>Style one section at a time. Nav first. Then hero. Then the rest. Commit after each major section. Check mobile as you go.</p>
+              <div class="act-time">// one section = one commit</div>
+            </div>
+            <div class="act-card">
+              <div class="act-step">PHASE 4 — SHIP</div>
+              <h4>Deploy + review</h4>
+              <p>Push to GitHub Pages. View it live. Check it on your phone. Ask a friend or family member: "what do you think this person does?" Their answer tells you if your message is clear.</p>
+              <div class="act-time">// get real feedback</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout blue">
+          <div class="callout-lbl">WHAT HAPPENS NEXT</div>
+          <p>When your site is live, share the URL with your tutor. They'll review it and give you feedback before you move to Phase 2. Phase 2 is where you add a real backend, build a web app, and start using v0 and Cursor properly. Your personal site will grow alongside you through every phase.</p>
+        </div>
+
+        <div class="reflect">
+          <h4>Final reflection — Phase 1</h4>
+          <div class="rq"><p>What's the most important thing you learned in Phase 1 — not a tool, but a way of thinking?</p></div>
+          <div class="rq"><p>If a client asked you right now "can you build me a simple website?" — what would you say?</p></div>
+          <div class="rq"><p>What do you want to add to your site that you don't know how to do yet?</p></div>
+        </div>
+
+        <div class="lnav">
+          <button class="done-btn" onclick="markDone('l7')">PHASE 1 COMPLETE →</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  const CODES = ['PHASE1-AUS', 'STACKFOUND', 'BUILD2026'];
+  const LESSONS = ['welcome','l1','l2','l3','l4','l5','l6','l7'];
+  let done = JSON.parse(localStorage.getItem('p1_done')||'[]');
+
+  function tryUnlock(){
+    const v = document.getElementById('pass-input').value.trim().toUpperCase();
+    if(CODES.includes(v)){
+      document.getElementById('lock').style.display='none';
+      document.getElementById('main').style.display='block';
+      localStorage.setItem('p1_auth', btoa(v));
+      loadProgress();
+    } else {
+      document.getElementById('lock-error').style.display='block';
+      document.getElementById('pass-input').value='';
+    }
+  }
+  document.getElementById('pass-input').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+
+  window.addEventListener('DOMContentLoaded',()=>{
+    const s = localStorage.getItem('p1_auth');
+    if(s){try{const d=atob(s).toUpperCase();if(CODES.includes(d)){document.getElementById('lock').style.display='none';document.getElementById('main').style.display='block';loadProgress();}}catch(e){localStorage.removeItem('p1_auth');}}
+  });
+
+  function logout(){localStorage.removeItem('p1_auth');location.reload();}
+
+  function go(id){
+    document.querySelectorAll('.lp').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.ll').forEach(l=>l.classList.remove('active'));
+    document.getElementById('page-'+id).classList.add('active');
+    document.getElementById('link-'+id).classList.add('active');
+    window.scrollTo(0,0);
+    if(window.innerWidth<=768)document.getElementById('sidebar').classList.remove('open');
+  }
+
+  function markDone(id){
+    if(!done.includes(id))done.push(id);
+    localStorage.setItem('p1_done',JSON.stringify(done));
+    document.getElementById('link-'+id).classList.add('done');
+    updateProgress();
+    const i=LESSONS.indexOf(id);
+    if(i<LESSONS.length-1)go(LESSONS[i+1]);
+  }
+
+  function updateProgress(){
+    const pct=Math.round((done.length/LESSONS.length)*100);
+    document.getElementById('prog-text').textContent=done.length+' / '+LESSONS.length+' done';
+    document.getElementById('prog-pct').textContent=pct+'%';
+    document.getElementById('prog-fill').style.width=pct+'%';
+    done.forEach(id=>{const l=document.getElementById('link-'+id);if(l)l.classList.add('done');});
+  }
+
+  function loadProgress(){done=JSON.parse(localStorage.getItem('p1_done')||'[]');updateProgress();}
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');}
+
+  function copyCode(btn){
+    const pre=btn.closest('.code-wrap').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(()=>{
+      btn.textContent='COPIED';
+      setTimeout(()=>btn.textContent='COPY',1500);
+    });
+  }
+</script>
+</body>
+</html>
